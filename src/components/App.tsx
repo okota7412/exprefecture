@@ -1,9 +1,16 @@
-import { PrefectureMap } from './PrefectureMap'
+import { Routes, Route } from 'react-router-dom'
+
+import { PrefectureBoard } from './PrefectureBoard'
+import { PrefectureHome } from './PrefectureHome'
+import { RegionBoard } from './RegionBoard'
+
 function App() {
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-gray-100 overflow-hidden">
-      <PrefectureMap />
-    </div>
+    <Routes>
+      <Route path="/" element={<PrefectureHome />} />
+      <Route path="/regions/:regionId" element={<RegionBoard />} />
+      <Route path="/prefectures/:prefectureId" element={<PrefectureBoard />} />
+    </Routes>
   )
 }
 
