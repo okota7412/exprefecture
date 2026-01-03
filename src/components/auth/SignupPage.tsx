@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { Header } from '@/components/shared/Header'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const SignupPage = () => {
   const [email, setEmail] = useState('')
@@ -10,6 +11,7 @@ export const SignupPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { signup } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,14 +32,11 @@ export const SignupPage = () => {
     setIsLoading(true)
 
     try {
-      // TODO: バックエンドAPIとの連携を実装
-      console.log('Signup attempt:', { email, password })
+      // 認証コンテキストのsignup関数を使用
+      await signup(email, password)
 
-      // 仮の処理（実際のAPI実装時に置き換え）
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // サインアップ成功後、ログインページにリダイレクト
-      navigate('/login')
+      // サインアップ成功後、ホームページにリダイレクト
+      navigate('/')
     } catch (err) {
       const errorMessage =
         err &&

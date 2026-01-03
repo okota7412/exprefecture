@@ -1,5 +1,7 @@
-import { MapPin, Home, ArrowLeft } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { MapPin, Home, ArrowLeft, LogOut } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+
+import { useAuth } from '@/contexts/AuthContext'
 
 type HeaderProps = {
   showBackButton?: boolean
@@ -13,7 +15,25 @@ export const Header = ({
   showBackButton = false,
 }: HeaderProps) => {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { isAuthenticated, logout, user } = useAuth()
   const isHome = location.pathname === '/'
+  const isLoginPage = location.pathname === '/login'
+  const isSignupPage = location.pathname === '/signup'
+
+  // デバッグ用（開発環境でのみ）
+  if (import.meta.env.VITE_DEV_MODE === 'true') {
+    console.log('Header - isAuthenticated:', isAuthenticated, 'user:', user)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
 
   return (
     <header
@@ -51,7 +71,7 @@ export const Header = ({
                 </span>
               </Link>
             )}
-            {!isHome && !showBackButton && (
+            {!isHome && !showBackButton && !isLoginPage && !isSignupPage && (
               <Link
                 to="/"
                 className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600"
@@ -62,6 +82,19 @@ export const Header = ({
                   ホーム
                 </span>
               </Link>
+            )}
+            {!isLoginPage && !isSignupPage && (
+              <button
+                onClick={handleLogout}
+                type="button"
+                className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600"
+                aria-label="ログアウト"
+              >
+                <LogOut className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
+                <span className="hidden sm:inline text-sm md:text-base">
+                  ログアウト
+                </span>
+              </button>
             )}
           </div>
         </div>

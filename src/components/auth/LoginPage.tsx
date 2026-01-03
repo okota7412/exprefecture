@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 
 import { Header } from '@/components/shared/Header'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('')
@@ -9,6 +10,8 @@ export const LoginPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -16,16 +19,12 @@ export const LoginPage = () => {
     setIsLoading(true)
 
     try {
-      // TODO: バックエンドAPIとの連携を実装
-      console.log('Login attempt:', { email, password })
-
-      // 仮の処理（実際のAPI実装時に置き換え）
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // 認証コンテキストのlogin関数を使用
+      await login(email, password)
 
       // ログイン成功後、元のページまたはホームにリダイレクト
-      const from =
-        new URLSearchParams(window.location.search).get('from') || '/'
-      navigate(from)
+      const from = (location.state as { from?: string })?.from || '/'
+      navigate(from, { replace: true })
     } catch (err) {
       const errorMessage =
         err &&
