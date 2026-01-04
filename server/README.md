@@ -84,6 +84,26 @@ npm start
 
 - `GET /health` - ヘルスチェック
 
+## セキュリティリファクタリング
+
+認証システムは2025年末時点のベストプラクティス（OWASP Cheat Sheet / OAuth 2.0 Security BCP RFC 9700 / OAuth 2.1）に沿って実装されています。
+
+詳細は以下のドキュメントを参照してください：
+
+- [セキュリティリファクタリング計画](./SECURITY_REFACTOR.md)
+- [セキュリティチェックリスト](./SECURITY_CHECKLIST.md)
+- [実装ガイド](./IMPLEMENTATION_GUIDE.md)
+
+### 主なセキュリティ機能
+
+- ✅ パスワードハッシュ化（bcrypt rounds 12）
+- ✅ ユーザー列挙耐性（タイミング攻撃対策）
+- ✅ Rate Limiting（ログイン: 5回/15分、サインアップ: 3回/時間）
+- ✅ CSRF対策（Double Submit Cookieパターン）
+- ✅ セキュアなCookie設定（HttpOnly, Secure, SameSite）
+- ✅ 監査ログ（ログイン試行、ログアウト等を記録）
+- ✅ ドメイン層の分離（Controller/Service/Repository）
+
 ## 認証方式
 
 Cookie × JWTのベストプラクティスを採用：

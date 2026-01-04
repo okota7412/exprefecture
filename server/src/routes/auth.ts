@@ -1,240 +1,163 @@
-import bcrypt from 'bcryptjs'
+/**
+ * 認証ルーター（コントローラー層）
+ */
 import express, { type Request, type Response } from 'express'
 import { z } from 'zod'
 
+import { loginSchema, signupSchema } from '../dto/auth.dto.js'
 import { authenticateToken, type AuthRequest } from '../middleware/auth.js'
+import { verifyCsrfToken, getCsrfToken } from '../middleware/csrf.js'
 import {
-  generateAccessToken,
-  generateRefreshToken,
-  verifyRefreshToken,
-} from '../utils/jwt.js'
-import prisma from '../utils/prisma.js'
+  loginRateLimiter,
+  signupRateLimiter,
+} from '../middleware/rate-limit.js'
+import { authService, AuthError } from '../services/auth.service.js'
+import {
+  REFRESH_TOKEN_COOKIE_NAME,
+  REFRESH_TOKEN_COOKIE_OPTIONS,
+} from '../utils/cookie.js'
 
 const router = express.Router()
 
-// バリデーションスキーマ
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-})
-
-const signupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-})
-
-// Cookie設定の共通化
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7日間
-}
+/**
+ * CSRFトークン取得エンドポイント
+ */
+router.get('/csrf-token', getCsrfToken)
 
 /**
  * サインアップ（新規登録）
  */
-router.post('/signup', async (req: Request, res: Response) => {
-  try {
-    const validatedData = signupSchema.parse(req.body)
-    const { email, password } = validatedData
+router.post(
+  '/signup',
+  signupRateLimiter,
+  verifyCsrfToken,
+  async (req: Request, res: Response) => {
+    try {
+      const validatedData = signupSchema.parse(req.body)
+      const ipAddress = req.ip || req.socket.remoteAddress || undefined
+      const userAgent = req.headers['user-agent']
+      const result = await authService.signup(
+        validatedData,
+        ipAddress,
+        userAgent
+      )
 
-    // メールアドレスの重複チェック
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    })
+      // リフレッシュトークンをHttpOnly Cookieに設定
+      res.cookie(
+        REFRESH_TOKEN_COOKIE_NAME,
+        result.refreshToken,
+        REFRESH_TOKEN_COOKIE_OPTIONS
+      )
 
-    if (existingUser) {
-      return res.status(409).json({ message: 'Email already registered' })
-    }
-
-    // パスワードをハッシュ化
-    const passwordHash = await bcrypt.hash(password, 10)
-
-    // ユーザーを作成
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        role: 'user',
-      },
-    })
-
-    // トークンを生成
-    const payload = { userId: user.id, role: user.role }
-    const accessToken = generateAccessToken(payload)
-    const refreshToken = generateRefreshToken(payload)
-
-    // リフレッシュトークンをデータベースに保存
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7日後
-
-    await prisma.refreshToken.create({
-      data: {
-        userId: user.id,
-        token: refreshToken,
-        expiresAt,
-      },
-    })
-
-    // リフレッシュトークンはHttpOnly Cookieへ
-    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
-
-    // アクセストークンはJSONでクライアントへ
-    res.status(201).json({
-      accessToken,
-      user: {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      },
-    })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        message: 'Validation error',
-        errors: error.errors,
+      res.status(201).json({
+        accessToken: result.accessToken,
+        user: result.user,
       })
-    }
-
-    // Prismaエラーの処理
-    if (error && typeof error === 'object' && 'code' in error) {
-      const prismaError = error as { code: string; meta?: unknown }
-      if (prismaError.code === 'P2002') {
-        return res.status(409).json({ message: 'Email already registered' })
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          message: 'Validation error',
+          errors: error.errors,
+        })
       }
-    }
 
-    console.error('Signup error:', error)
-    return res.status(500).json({ message: 'Internal server error' })
+      if (error instanceof AuthError) {
+        const statusCode =
+          error.code === 'EMAIL_EXISTS'
+            ? 409
+            : error.code === 'INVALID_CREDENTIALS'
+              ? 401
+              : 400
+        return res.status(statusCode).json({ message: error.message })
+      }
+
+      console.error('Signup error:', error)
+      return res.status(500).json({ message: 'Internal server error' })
+    }
   }
-})
+)
 
 /**
  * ログイン
  */
-router.post('/login', async (req: Request, res: Response) => {
-  try {
-    const validatedData = loginSchema.parse(req.body)
-    const { email, password } = validatedData
+router.post(
+  '/login',
+  loginRateLimiter,
+  verifyCsrfToken,
+  async (req: Request, res: Response) => {
+    try {
+      const validatedData = loginSchema.parse(req.body)
+      const ipAddress = req.ip || req.socket.remoteAddress || undefined
+      const userAgent = req.headers['user-agent']
+      const result = await authService.login(
+        validatedData,
+        ipAddress,
+        userAgent
+      )
 
-    // ユーザーを取得
-    const user = await prisma.user.findUnique({
-      where: { email },
-    })
+      // リフレッシュトークンをHttpOnly Cookieに設定
+      res.cookie(
+        REFRESH_TOKEN_COOKIE_NAME,
+        result.refreshToken,
+        REFRESH_TOKEN_COOKIE_OPTIONS
+      )
 
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' })
-    }
-
-    // パスワードを検証
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash)
-
-    if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid credentials' })
-    }
-
-    // トークンを生成
-    const payload = { userId: user.id, role: user.role }
-    const accessToken = generateAccessToken(payload)
-    const refreshToken = generateRefreshToken(payload)
-
-    // 古いリフレッシュトークンを削除（オプション：セキュリティ強化のため）
-    await prisma.refreshToken.deleteMany({
-      where: { userId: user.id },
-    })
-
-    // 新しいリフレッシュトークンをデータベースに保存
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7日後
-
-    await prisma.refreshToken.create({
-      data: {
-        userId: user.id,
-        token: refreshToken,
-        expiresAt,
-      },
-    })
-
-    // リフレッシュトークンはHttpOnly Cookieへ
-    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
-
-    // アクセストークンはJSONでクライアントへ
-    res.json({
-      accessToken,
-      user: {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      },
-    })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        message: 'Validation error',
-        errors: error.errors,
+      res.json({
+        accessToken: result.accessToken,
+        user: result.user,
       })
-    }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          message: 'Validation error',
+          errors: error.errors,
+        })
+      }
 
-    console.error('Login error:', error)
-    return res.status(500).json({ message: 'Internal server error' })
+      if (error instanceof AuthError) {
+        return res.status(401).json({ message: error.message })
+      }
+
+      console.error('Login error:', error)
+      return res.status(500).json({ message: 'Internal server error' })
+    }
   }
-})
+)
 
 /**
  * トークンリフレッシュ
  */
-router.post('/refresh', async (req: Request, res: Response) => {
-  const refreshToken = req.cookies.refreshToken
+router.post(
+  '/refresh',
+  verifyCsrfToken,
+  async (req: Request, res: Response) => {
+    const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME]
 
-  if (!refreshToken) {
-    return res.status(401).json({ message: 'No refresh token provided' })
-  }
-
-  try {
-    // リフレッシュトークンの署名検証
-    const decoded = verifyRefreshToken(refreshToken)
-
-    // データベース上のリフレッシュトークンの有効性チェック
-    const storedToken = await prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
-      include: { user: true },
-    })
-
-    if (!storedToken || storedToken.expiresAt < new Date()) {
-      // トークンが無効または期限切れ
-      await prisma.refreshToken.deleteMany({
-        where: { userId: decoded.userId },
-      })
-      res.clearCookie('refreshToken', COOKIE_OPTIONS)
-      return res
-        .status(403)
-        .json({ message: 'Invalid or expired refresh token' })
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'No refresh token provided' })
     }
 
-    // 新しいアクセストークンを生成
-    const newAccessToken = generateAccessToken({
-      userId: decoded.userId,
-      role: decoded.role,
-    })
-
-    res.json({ accessToken: newAccessToken })
-  } catch (error) {
-    console.error('Refresh error:', error)
-    res.clearCookie('refreshToken', COOKIE_OPTIONS)
-
-    // データベースエラーの場合も適切に処理
-    if (error && typeof error === 'object' && 'code' in error) {
-      const prismaError = error as { code: string }
-      if (prismaError.code === 'P2025') {
-        // レコードが見つからない
-        return res.status(403).json({ message: 'Invalid refresh token' })
+    try {
+      const ipAddress = req.ip || req.socket.remoteAddress || undefined
+      const userAgent = req.headers['user-agent']
+      const result = await authService.refresh(
+        refreshToken,
+        ipAddress,
+        userAgent
+      )
+      res.json(result)
+    } catch (error) {
+      if (error instanceof AuthError) {
+        res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS)
+        return res.status(403).json({ message: error.message })
       }
-    }
 
-    return res.status(403).json({ message: 'Invalid refresh token' })
+      console.error('Refresh error:', error)
+      res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS)
+      return res.status(500).json({ message: 'Internal server error' })
+    }
   }
-})
+)
 
 /**
  * 現在のユーザー情報を取得
@@ -244,15 +167,7 @@ router.get(
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.user!.userId },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          createdAt: true,
-        },
-      })
+      const user = await authService.getUserById(req.user!.userId)
 
       if (!user) {
         return res.status(404).json({ message: 'User not found' })
@@ -265,15 +180,6 @@ router.get(
       })
     } catch (error) {
       console.error('Get user error:', error)
-
-      // Prismaエラーの処理
-      if (error && typeof error === 'object' && 'code' in error) {
-        const prismaError = error as { code: string }
-        if (prismaError.code === 'P2025') {
-          return res.status(404).json({ message: 'User not found' })
-        }
-      }
-
       return res.status(500).json({ message: 'Internal server error' })
     }
   }
@@ -285,27 +191,28 @@ router.get(
 router.post(
   '/logout',
   authenticateToken,
+  verifyCsrfToken,
   async (req: AuthRequest, res: Response) => {
-    const refreshToken = req.cookies.refreshToken
+    const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME]
 
     try {
-      // データベースからリフレッシュトークンを削除
       if (refreshToken) {
-        await prisma.refreshToken.deleteMany({
-          where: {
-            userId: req.user!.userId,
-            token: refreshToken,
-          },
-        })
+        const ipAddress = req.ip || req.socket.remoteAddress || undefined
+        const userAgent = req.headers['user-agent']
+        await authService.logout(
+          refreshToken,
+          req.user!.userId,
+          ipAddress,
+          userAgent
+        )
       }
 
-      // Cookieをクリア
-      res.clearCookie('refreshToken', COOKIE_OPTIONS)
+      res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS)
       res.json({ message: 'Logged out successfully' })
     } catch (error) {
       console.error('Logout error:', error)
       // エラーが発生してもCookieはクリア
-      res.clearCookie('refreshToken', COOKIE_OPTIONS)
+      res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS)
       res.json({ message: 'Logged out successfully' })
     }
   }
