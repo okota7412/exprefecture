@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 
 import { LoginPage } from './auth/LoginPage'
 import { SignupPage } from './auth/SignupPage'
+import { PrefectureDetail } from './PrefectureDetail'
 import { PrefectureHome } from './PrefectureHome'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicRoute } from './PublicRoute'
@@ -53,7 +54,7 @@ function App() {
             path="/prefectures/:prefectureId"
             element={
               <ProtectedRoute>
-                <div>Prefecture Detail (TODO)</div>
+                <PrefectureDetail />
               </ProtectedRoute>
             }
           />

@@ -1,0 +1,120 @@
+import { Item, getStatusLabel, getTagLabel } from '@/data/items'
+
+type ItemCardProps = {
+  item: Item
+  onClick: (itemId: number) => void
+}
+
+const getStatusColor = (status: Item['status']) => {
+  switch (status) {
+    case 'not_visited':
+      return {
+        bg: 'bg-gray-100',
+        text: 'text-gray-700',
+        border: 'border-gray-300',
+      }
+    case 'visited':
+      return {
+        bg: 'bg-blue-100',
+        text: 'text-blue-700',
+        border: 'border-blue-300',
+      }
+    case 'want_to_visit_again':
+      return {
+        bg: 'bg-purple-100',
+        text: 'text-purple-700',
+        border: 'border-purple-300',
+      }
+    default:
+      return {
+        bg: 'bg-gray-100',
+        text: 'text-gray-700',
+        border: 'border-gray-300',
+      }
+  }
+}
+
+const getTagColor = (tag: Item['tags'][number]) => {
+  switch (tag) {
+    case 'food':
+      return 'bg-orange-100 text-orange-700 border-orange-300'
+    case 'cafe':
+      return 'bg-amber-100 text-amber-700 border-amber-300'
+    case 'sightseeing':
+      return 'bg-green-100 text-green-700 border-green-300'
+    case 'experience':
+      return 'bg-indigo-100 text-indigo-700 border-indigo-300'
+    case 'accommodation':
+      return 'bg-pink-100 text-pink-700 border-pink-300'
+    case 'other':
+      return 'bg-gray-100 text-gray-700 border-gray-300'
+    default:
+      return 'bg-gray-100 text-gray-700 border-gray-300'
+  }
+}
+
+export const ItemCard = ({ item, onClick }: ItemCardProps) => {
+  const statusColor = getStatusColor(item.status)
+
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(item.id)}
+      className="group relative w-full h-full bg-white border border-gray-200/60 rounded-xl p-4 md:p-5 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 active:scale-[0.98] hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.12)] hover:border-gray-300 shadow-[0_2px_4px_rgba(0,0,0,0.06)]"
+      aria-label={`${item.title}を開く`}
+    >
+      <div className="flex flex-col h-full">
+        {/* サムネイル画像エリア（将来の拡張用） */}
+        {item.mediaUrl && (
+          <div className="w-full h-32 md:h-40 mb-3 md:mb-4 rounded-lg bg-gray-100 overflow-hidden">
+            <img
+              src={item.mediaUrl}
+              alt={item.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
+        {/* タイトルと市名 */}
+        <div className="flex-1 mb-3 md:mb-4">
+          <h3 className="text-base md:text-lg font-semibold text-gray-950 mb-1.5 md:mb-2 leading-tight line-clamp-2">
+            {item.title}
+          </h3>
+          {item.cityName && (
+            <p className="text-xs md:text-sm text-gray-600 mb-2">
+              {item.cityName}
+            </p>
+          )}
+          {item.description && (
+            <p className="text-xs md:text-sm text-gray-500 line-clamp-2">
+              {item.description}
+            </p>
+          )}
+        </div>
+
+        {/* ステータスバッジ */}
+        <div className="flex items-center gap-2 mb-2 md:mb-3 flex-wrap">
+          <span
+            className={`text-xs px-2 py-0.5 md:px-2.5 md:py-1 rounded-full font-medium border ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}
+          >
+            {getStatusLabel(item.status)}
+          </span>
+        </div>
+
+        {/* タグバッジ */}
+        {item.tags.length > 0 && (
+          <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+            {item.tags.map(tag => (
+              <span
+                key={tag}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium border ${getTagColor(tag)}`}
+              >
+                {getTagLabel(tag)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </button>
+  )
+}
