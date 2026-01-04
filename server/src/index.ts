@@ -32,22 +32,16 @@ const corsOptions = {
         ? [process.env.FRONTEND_URL]
         : []
 
-    // デバッグ用ログ
-    console.log('CORS check - Origin:', origin)
-    console.log('CORS check - Allowed origins:', allowedOrigins)
-
     // originがundefinedの場合は許可（Postmanなどからの直接リクエスト、またはプリフライトリクエスト）
     if (!origin || allowedOrigins.includes(origin)) {
-      console.log('CORS check - Allowed')
       callback(null, true)
     } else {
-      console.log('CORS check - Blocked')
       callback(new Error('Not allowed by CORS'))
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   optionsSuccessStatus: 200, // 一部の古いブラウザ（IE11など）のサポート
 }
 
