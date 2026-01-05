@@ -12,7 +12,7 @@ export type ItemTag =
   | 'other'
 
 export type Item = {
-  id: number
+  id: string
   title: string
   description?: string
   prefectureId: number

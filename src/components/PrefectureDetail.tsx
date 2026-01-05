@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
-import { getItemsByPrefecture } from '@/data/items'
+import { customInstance } from '@/api/client'
+import type { Item, ItemStatus, ItemTag } from '@/data/items'
 import { prefectures } from '@/data/prefectures'
 import { getRegionById } from '@/data/regions'
 
+import { ItemCreateModal } from './ItemCreateModal'
 import { Header } from './shared/Header'
 import { HeroSection } from './shared/HeroSection'
 import { ItemGrid } from './shared/ItemGrid'
@@ -14,6 +17,57 @@ export const PrefectureDetail = () => {
   const { prefectureId } = useParams<{ prefectureId: string }>()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [items, setItems] = useState<Item[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const prefectureIdNum = prefectureId ? parseInt(prefectureId, 10) : null
+  const prefecture =
+    prefectureIdNum !== null
+      ? prefectures.find(p => p.id === prefectureIdNum)
+      : null
+
+  // APIからアイテムを取得
+  useEffect(() => {
+    if (!prefectureIdNum || !prefecture) {
+      setIsLoading(false)
+      setItems([])
+      return
+    }
+
+    const fetchItems = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const response = await customInstance.get<Item[]>('/api/items', {
+          params: { prefectureId: prefectureIdNum },
+        })
+        // APIレスポンスをItem型に変換
+        const itemsData: Item[] = response.data.map(item => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          prefectureId: item.prefectureId,
+          cityName: item.cityName,
+          status: item.status as ItemStatus,
+          tags: item.tags as ItemTag[],
+          mediaUrl: item.mediaUrl,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+        }))
+        setItems(itemsData)
+      } catch (err) {
+        console.error('Failed to fetch items:', err)
+        setError('アイテムの取得に失敗しました')
+        setItems([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchItems()
+  }, [prefectureIdNum, prefecture])
 
   if (!prefectureId) {
     return (
@@ -35,9 +89,6 @@ export const PrefectureDetail = () => {
       </div>
     )
   }
-
-  const prefectureIdNum = parseInt(prefectureId, 10)
-  const prefecture = prefectures.find(p => p.id === prefectureIdNum)
 
   if (!prefecture) {
     return (
@@ -75,12 +126,40 @@ export const PrefectureDetail = () => {
   const regionId = regionNameToIdMap[prefecture.region]
   const region = regionId ? getRegionById(regionId) : undefined
 
-  const items = getItemsByPrefecture(prefectureIdNum)
   const itemCount = items.length
 
-  const handleItemClick = (itemId: number) => {
+  const handleItemClick = (itemId: string) => {
     // TODO: アイテム詳細画面への遷移（将来実装）
     console.log('Item clicked:', itemId)
+  }
+
+  const handleCreateSuccess = async () => {
+    // アイテム作成成功時はAPIから再取得
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await customInstance.get<Item[]>('/api/items', {
+        params: { prefectureId: prefectureIdNum },
+      })
+      const itemsData: Item[] = response.data.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        prefectureId: item.prefectureId,
+        cityName: item.cityName,
+        status: item.status as ItemStatus,
+        tags: item.tags as ItemTag[],
+        mediaUrl: item.mediaUrl,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      }))
+      setItems(itemsData)
+    } catch (err) {
+      console.error('Failed to fetch items:', err)
+      setError('アイテムの取得に失敗しました')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -94,21 +173,63 @@ export const PrefectureDetail = () => {
         <HeroSection
           title={prefecture.name}
           description={
-            itemCount > 0 ? `${itemCount}件のアイテム` : 'アイテムがありません'
+            isLoading
+              ? '読み込み中...'
+              : itemCount > 0
+                ? `${itemCount}件のアイテム`
+                : 'アイテムがありません'
           }
         />
+        <div className="flex gap-2.5 mb-4 md:mb-5">
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+            aria-label="新しいアイテムを作成"
+          >
+            <Plus className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
+            <span className="text-sm md:text-base font-medium">新規作成</span>
+          </button>
+        </div>
         <SearchBar
           onSearchChange={setSearchQuery}
           placeholder="アイテムで検索"
         />
         <section aria-label="アイテム一覧" className="pb-4 md:pb-6">
-          <ItemGrid
-            items={items}
-            onItemClick={handleItemClick}
-            searchQuery={searchQuery}
-          />
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-sm md:text-base">
+                読み込み中...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-2 text-sm md:text-base">{error}</p>
+              <button
+                type="button"
+                onClick={handleCreateSuccess}
+                className="text-blue-600 hover:text-blue-700 text-sm md:text-base"
+              >
+                再読み込み
+              </button>
+            </div>
+          ) : (
+            <ItemGrid
+              items={items}
+              onItemClick={handleItemClick}
+              searchQuery={searchQuery}
+            />
+          )}
         </section>
       </main>
+      {prefectureIdNum !== null && (
+        <ItemCreateModal
+          open={isCreateModalOpen}
+          onOpenChange={setIsCreateModalOpen}
+          prefectureId={prefectureIdNum}
+          onSuccess={handleCreateSuccess}
+        />
+      )}
     </div>
   )
 }

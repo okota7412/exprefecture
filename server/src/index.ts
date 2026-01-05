@@ -3,6 +3,7 @@ import cors from 'cors'
 import express from 'express'
 
 import authRoutes from './routes/auth.js'
+import itemRoutes from './routes/items.js'
 import prisma from './utils/prisma.js'
 
 const app = express()
@@ -53,6 +54,7 @@ app.use(cookieParser())
 
 // ルート
 app.use('/api/auth', authRoutes)
+app.use('/api/items', itemRoutes)
 
 // ヘルスチェック（データベース接続も確認）
 app.get('/health', async (req, res) => {

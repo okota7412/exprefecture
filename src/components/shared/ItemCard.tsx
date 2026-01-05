@@ -2,7 +2,7 @@ import { Item, getStatusLabel, getTagLabel } from '@/data/items'
 
 type ItemCardProps = {
   item: Item
-  onClick: (itemId: number) => void
+  onClick: (itemId: string) => void
 }
 
 const getStatusColor = (status: Item['status']) => {

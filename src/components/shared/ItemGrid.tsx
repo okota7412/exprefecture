@@ -4,7 +4,7 @@ import { ItemCard } from './ItemCard'
 
 type ItemGridProps = {
   items: Item[]
-  onItemClick: (itemId: number) => void
+  onItemClick: (itemId: string) => void
   searchQuery?: string
 }
 
