@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { regions } from '@/data/regions'
@@ -12,18 +12,51 @@ import { SelectionGrid } from './shared/SelectionGrid'
 export const RegionHome = () => {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const [regionItems, setRegionItems] = useState<
+    Array<{
+      id: string
+      title: string
+      subtitle: string
+      itemCount: number
+      regionId: string
+    }>
+  >([])
 
   const handleRegionClick = (regionId: string | number) => {
     navigate(`/regions/${regionId}`)
   }
 
-  const regionItems = regions.map(region => ({
-    id: region.id,
-    title: region.name,
-    subtitle: `${region.prefectureIds.length}県`,
-    itemCount: getItemCountByRegion(region.id),
-    regionId: region.id,
-  }))
+  // APIからアイテム数を取得
+  useEffect(() => {
+    const fetchItemCounts = async () => {
+      try {
+        const items = await Promise.all(
+          regions.map(async region => ({
+            id: region.id,
+            title: region.name,
+            subtitle: `${region.prefectureIds.length}県`,
+            itemCount: await getItemCountByRegion(region.id),
+            regionId: region.id,
+          }))
+        )
+        setRegionItems(items)
+      } catch (error) {
+        console.error('Failed to fetch item counts:', error)
+        // エラー時は0件として表示
+        setRegionItems(
+          regions.map(region => ({
+            id: region.id,
+            title: region.name,
+            subtitle: `${region.prefectureIds.length}県`,
+            itemCount: 0,
+            regionId: region.id,
+          }))
+        )
+      }
+    }
+
+    fetchItemCounts()
+  }, [])
 
   return (
     <div className="h-screen w-full bg-white flex flex-col overflow-hidden">
