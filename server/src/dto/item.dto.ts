@@ -40,6 +40,18 @@ export const createItemSchema = z.object({
 export type CreateItemDto = z.infer<typeof createItemSchema>
 
 /**
+ * 一括削除リクエストDTO
+ */
+export const deleteItemsSchema = z.object({
+  ids: z
+    .array(z.string().uuid('Invalid UUID format'))
+    .min(1, 'At least one item ID is required')
+    .max(50, 'Cannot delete more than 50 items at once'),
+})
+
+export type DeleteItemsDto = z.infer<typeof deleteItemsSchema>
+
+/**
  * アイテムレスポンスDTO
  */
 export interface ItemResponse {

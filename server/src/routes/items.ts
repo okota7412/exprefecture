@@ -4,10 +4,13 @@
 import express, { type Request, type Response } from 'express'
 import { z } from 'zod'
 
-import { createItemSchema } from '../dto/item.dto.js'
+import { createItemSchema, deleteItemsSchema } from '../dto/item.dto.js'
 import { authenticateToken, type AuthRequest } from '../middleware/auth.js'
 import { verifyCsrfToken } from '../middleware/csrf.js'
-import { itemService } from '../services/item.service.js'
+import {
+  itemService,
+  ItemError as ServiceItemError,
+} from '../services/item.service.js'
 
 const router = express.Router()
 
@@ -78,5 +81,77 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Internal server error' })
   }
 })
+
+/**
+ * アイテム一括削除（/:idより前に定義する必要がある）
+ */
+router.delete(
+  '/',
+  authenticateToken,
+  verifyCsrfToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const validatedData = deleteItemsSchema.parse(req.body)
+      const deletedCount = await itemService.deleteItems(
+        validatedData.ids,
+        req.user!.userId
+      )
+
+      res.status(200).json({
+        message: 'Items deleted successfully',
+        deletedCount,
+      })
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          message: 'Validation error',
+          errors: error.errors,
+        })
+      }
+
+      if (error instanceof ServiceItemError) {
+        if (error.code === 'ITEM_NOT_FOUND') {
+          return res.status(404).json({ message: error.message })
+        }
+        if (error.code === 'FORBIDDEN') {
+          return res.status(403).json({ message: error.message })
+        }
+        if (error.code === 'VALIDATION_ERROR') {
+          return res.status(400).json({ message: error.message })
+        }
+      }
+
+      console.error('Delete items error:', error)
+      return res.status(500).json({ message: 'Internal server error' })
+    }
+  }
+)
+
+/**
+ * アイテム個別削除（/:idは最後に定義）
+ */
+router.delete(
+  '/:id',
+  authenticateToken,
+  verifyCsrfToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      await itemService.deleteItem(req.params.id, req.user!.userId)
+      res.status(204).send()
+    } catch (error) {
+      if (error instanceof ServiceItemError) {
+        if (error.code === 'ITEM_NOT_FOUND') {
+          return res.status(404).json({ message: error.message })
+        }
+        if (error.code === 'FORBIDDEN') {
+          return res.status(403).json({ message: error.message })
+        }
+      }
+
+      console.error('Delete item error:', error)
+      return res.status(500).json({ message: 'Internal server error' })
+    }
+  }
+)
 
 export default router
