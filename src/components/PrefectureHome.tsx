@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import { getRegionById, getPrefecturesByRegion } from '@/data/regions'
@@ -14,6 +14,54 @@ export const PrefectureHome = () => {
   const { regionId } = useParams<{ regionId: string }>()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const [prefectureItems, setPrefectureItems] = useState<
+    Array<{
+      id: number
+      title: string
+      subtitle: string
+      itemCount: number
+      regionId: string
+    }>
+  >([])
+
+  const region = regionId ? getRegionById(regionId) : null
+  const prefectures = regionId ? getPrefecturesByRegion(regionId) : []
+
+  // APIからアイテム数を取得
+  useEffect(() => {
+    if (!region || prefectures.length === 0) {
+      return
+    }
+
+    const fetchItemCounts = async () => {
+      try {
+        const items = await Promise.all(
+          prefectures.map(async prefecture => ({
+            id: prefecture.id,
+            title: prefecture.name,
+            subtitle: prefecture.region,
+            itemCount: await getItemCountByPrefecture(prefecture.id),
+            regionId: region.id,
+          }))
+        )
+        setPrefectureItems(items)
+      } catch (error) {
+        console.error('Failed to fetch item counts:', error)
+        // エラー時は0件として表示
+        setPrefectureItems(
+          prefectures.map(prefecture => ({
+            id: prefecture.id,
+            title: prefecture.name,
+            subtitle: prefecture.region,
+            itemCount: 0,
+            regionId: region.id,
+          }))
+        )
+      }
+    }
+
+    fetchItemCounts()
+  }, [region, prefectures])
 
   if (!regionId) {
     return (
@@ -35,9 +83,6 @@ export const PrefectureHome = () => {
       </div>
     )
   }
-
-  const region = getRegionById(regionId)
-  const prefectures = getPrefecturesByRegion(regionId)
 
   if (!region) {
     return (
@@ -63,14 +108,6 @@ export const PrefectureHome = () => {
   const handlePrefectureClick = (prefectureId: string | number) => {
     navigate(`/prefectures/${prefectureId}`)
   }
-
-  const prefectureItems = prefectures.map(prefecture => ({
-    id: prefecture.id,
-    title: prefecture.name,
-    subtitle: prefecture.region,
-    itemCount: getItemCountByPrefecture(prefecture.id),
-    regionId: region.id,
-  }))
 
   return (
     <div className="h-screen w-full bg-white flex flex-col overflow-hidden">
