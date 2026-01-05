@@ -8,6 +8,7 @@ import { prefectures } from '@/data/prefectures'
 import { getRegionById } from '@/data/regions'
 
 import { ItemCreateModal } from './ItemCreateModal'
+import { BackButton } from './shared/BackButton'
 import { Header } from './shared/Header'
 import { HeroSection } from './shared/HeroSection'
 import { ItemGrid } from './shared/ItemGrid'
@@ -164,12 +165,12 @@ export const PrefectureDetail = () => {
 
   return (
     <div className="h-screen w-full bg-white flex flex-col overflow-hidden">
-      <Header
-        showBackButton
-        backPath={region ? `/regions/${region.id}` : '/'}
-        backLabel={region ? `${region.name}地方に戻る` : 'ホームに戻る'}
-      />
+      <Header />
       <main className="flex-1 overflow-y-auto container mx-auto px-4 md:px-6 py-4 md:py-6 max-w-7xl">
+        <BackButton
+          to={region ? `/regions/${region.id}` : '/'}
+          label={region ? `${region.name}地方に戻る` : 'ホームに戻る'}
+        />
         <HeroSection
           title={prefecture.name}
           description={
