@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getRegionById, getPrefecturesByRegion } from '@/data/regions'
 import { getItemCountByPrefecture } from '@/utils/itemCount'
 
+import { BackButton } from './shared/BackButton'
 import { Header } from './shared/Header'
 import { HeroSection } from './shared/HeroSection'
 import { SearchBar } from './shared/SearchBar'
@@ -73,8 +74,9 @@ export const PrefectureHome = () => {
 
   return (
     <div className="h-screen w-full bg-white flex flex-col overflow-hidden">
-      <Header showBackButton backPath="/" backLabel="地方一覧に戻る" />
+      <Header />
       <main className="flex-1 overflow-y-auto container mx-auto px-4 md:px-6 py-4 md:py-6 max-w-7xl">
+        <BackButton to="/" label="地方一覧に戻る" />
         <HeroSection
           title={`${region.name}地方`}
           description={`${prefectures.length}都道府県から選ぶ`}
