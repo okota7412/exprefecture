@@ -23,6 +23,8 @@ export interface IItemRepository {
   findByPrefectureId(prefectureId: number): Promise<Item[]>
   findById(id: string): Promise<Item | null>
   findByUserId(userId: string): Promise<Item[]>
+  delete(id: string): Promise<void>
+  deleteMany(ids: string[]): Promise<number>
 }
 
 export class ItemRepository implements IItemRepository {
@@ -67,6 +69,24 @@ export class ItemRepository implements IItemRepository {
     })
 
     return items
+  }
+
+  async delete(id: string): Promise<void> {
+    await prisma.item.delete({
+      where: { id },
+    })
+  }
+
+  async deleteMany(ids: string[]): Promise<number> {
+    const result = await prisma.item.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    })
+
+    return result.count
   }
 }
 
