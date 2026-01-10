@@ -17,6 +17,7 @@ export class ItemError extends Error {
 export interface IItemService {
   createItem(dto: CreateItemDto, userId: string): Promise<ItemResponse>
   getItemsByPrefecture(prefectureId: number): Promise<ItemResponse[]>
+  getItemsByGroupId(groupId: string, userId: string): Promise<ItemResponse[]>
   getItemById(id: string): Promise<ItemResponse | null>
   getItemsByUserId(userId: string): Promise<ItemResponse[]>
   deleteItem(id: string, userId: string): Promise<void>
@@ -35,7 +36,33 @@ export class ItemService implements IItemService {
 
   async getItemsByPrefecture(prefectureId: number): Promise<ItemResponse[]> {
     const items = await itemRepository.findByPrefectureId(prefectureId)
-    return items.map(item => this.mapToResponse(item))
+    const itemsWithGroups = await Promise.all(
+      items.map(async item => {
+        const groupIds = await itemRepository.getGroupIdsByItemId(item.id)
+        return this.mapToResponse(item, groupIds)
+      })
+    )
+    return itemsWithGroups
+  }
+
+  async getItemsByGroupId(
+    groupId: string,
+    userId: string
+  ): Promise<ItemResponse[]> {
+    // グループがユーザーのものかチェック（簡易的な実装）
+    // 実際にはグループリポジトリでチェックする必要があるかもしれません
+    const items = await itemRepository.findByGroupId(groupId)
+
+    // ユーザーが所有するアイテムのみを返す
+    const userItems = items.filter(item => item.userId === userId)
+
+    const itemsWithGroups = await Promise.all(
+      userItems.map(async item => {
+        const groupIds = await itemRepository.getGroupIdsByItemId(item.id)
+        return this.mapToResponse(item, groupIds)
+      })
+    )
+    return itemsWithGroups
   }
 
   async getItemById(id: string): Promise<ItemResponse | null> {
@@ -43,12 +70,19 @@ export class ItemService implements IItemService {
     if (!item) {
       return null
     }
-    return this.mapToResponse(item)
+    const groupIds = await itemRepository.getGroupIdsByItemId(item.id)
+    return this.mapToResponse(item, groupIds)
   }
 
   async getItemsByUserId(userId: string): Promise<ItemResponse[]> {
     const items = await itemRepository.findByUserId(userId)
-    return items.map(item => this.mapToResponse(item))
+    const itemsWithGroups = await Promise.all(
+      items.map(async item => {
+        const groupIds = await itemRepository.getGroupIdsByItemId(item.id)
+        return this.mapToResponse(item, groupIds)
+      })
+    )
+    return itemsWithGroups
   }
 
   async deleteItem(id: string, userId: string): Promise<void> {
@@ -115,29 +149,33 @@ export class ItemService implements IItemService {
     return deletedCount
   }
 
-  private mapToResponse(item: {
-    id: string
-    title: string
-    description: string | null
-    prefectureId: number
-    cityName: string | null
-    status: string
-    tags: string
-    mediaUrl: string | null
-    userId: string
-    createdAt: Date
-    updatedAt: Date
-  }): ItemResponse {
+  private mapToResponse(
+    item: {
+      id: string
+      title: string
+      description: string | null
+      prefectureId: number | null
+      cityName: string | null
+      status: string
+      tags: string
+      mediaUrl: string | null
+      userId: string
+      createdAt: Date
+      updatedAt: Date
+    },
+    groupIds?: string[]
+  ): ItemResponse {
     return {
       id: item.id,
       title: item.title,
       description: item.description ?? undefined,
-      prefectureId: item.prefectureId,
+      prefectureId: item.prefectureId ?? undefined,
       cityName: item.cityName ?? undefined,
       status: item.status,
       tags: JSON.parse(item.tags) as string[],
       mediaUrl: item.mediaUrl ?? undefined,
       userId: item.userId,
+      groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined,
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
     }

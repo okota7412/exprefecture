@@ -42,21 +42,44 @@ router.post(
 )
 
 /**
- * 都道府県別アイテム一覧取得
+ * アイテム一覧取得
+ * クエリパラメータ:
+ * - prefectureId: 都道府県ID（任意、後で絞り込み機能用）
+ * - groupId: グループID（任意）
  */
-router.get('/', authenticateToken, async (req: Request, res: Response) => {
+router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const prefectureId = req.query.prefectureId
       ? parseInt(req.query.prefectureId as string, 10)
       : undefined
+    const groupId = req.query.groupId as string | undefined
 
-    if (!prefectureId || isNaN(prefectureId)) {
-      return res.status(400).json({
-        message: 'prefectureId query parameter is required',
-      })
+    // グループIDが指定されている場合はグループで取得
+    if (groupId) {
+      if (
+        !groupId.match(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        )
+      ) {
+        return res.status(400).json({
+          message: 'Invalid groupId format',
+        })
+      }
+      const items = await itemService.getItemsByGroupId(
+        groupId,
+        req.user!.userId
+      )
+      return res.json(items)
     }
 
-    const items = await itemService.getItemsByPrefecture(prefectureId)
+    // 都道府県IDが指定されている場合は都道府県で取得（後で絞り込み機能用）
+    if (prefectureId && !isNaN(prefectureId)) {
+      const items = await itemService.getItemsByPrefecture(prefectureId)
+      return res.json(items)
+    }
+
+    // クエリパラメータがない場合はユーザーの全アイテムを取得
+    const items = await itemService.getItemsByUserId(req.user!.userId)
     res.json(items)
   } catch (error) {
     console.error('Get items error:', error)

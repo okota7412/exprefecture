@@ -3,6 +3,7 @@ import cors from 'cors'
 import express from 'express'
 
 import authRoutes from './routes/auth.js'
+import groupRoutes from './routes/groups.js'
 import itemRoutes from './routes/items.js'
 import prisma from './utils/prisma.js'
 
@@ -54,6 +55,7 @@ app.use(cookieParser())
 
 // ルート
 app.use('/api/auth', authRoutes)
+app.use('/api/groups', groupRoutes)
 app.use('/api/items', itemRoutes)
 
 // ヘルスチェック（データベース接続も確認）

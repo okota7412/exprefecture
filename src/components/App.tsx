@@ -4,11 +4,12 @@ import { AuthProvider } from '@/contexts/AuthContext'
 
 import { LoginPage } from './auth/LoginPage'
 import { SignupPage } from './auth/SignupPage'
+import { GroupDetail } from './GroupDetail'
+import { GroupHome } from './GroupHome'
 import { PrefectureDetail } from './PrefectureDetail'
 import { PrefectureHome } from './PrefectureHome'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicRoute } from './PublicRoute'
-import { RegionHome } from './RegionHome'
 
 function App() {
   return (
@@ -38,7 +39,15 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <RegionHome />
+                <GroupHome />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups/:groupId"
+            element={
+              <ProtectedRoute>
+                <GroupDetail />
               </ProtectedRoute>
             }
           />
