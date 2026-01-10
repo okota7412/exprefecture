@@ -41,20 +41,27 @@ export const Header = () => {
           </div>
         </Link>
 
-        {/* ログアウトボタン（右上） */}
-        <div className="flex items-center gap-2">
-          {!isLoginPage && !isSignupPage && (
-            <button
-              onClick={handleLogout}
-              type="button"
-              className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600"
-              aria-label="ログアウト"
-            >
-              <LogOut className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
-              <span className="hidden sm:inline text-sm md:text-base">
-                ログアウト
-              </span>
-            </button>
+        {/* アカウント名とログアウトボタン（右上） */}
+        <div className="flex items-center gap-3">
+          {!isLoginPage && !isSignupPage && user && (
+            <>
+              {/* アカウント名 */}
+              <div className="text-sm md:text-base font-medium truncate max-w-[200px] md:max-w-none">
+                {user.email || `ユーザーID: ${user.userId}`}
+              </div>
+              {/* ログアウトボタン */}
+              <button
+                onClick={handleLogout}
+                type="button"
+                className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600"
+                aria-label="ログアウト"
+              >
+                <LogOut className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
+                <span className="hidden sm:inline text-sm md:text-base">
+                  ログアウト
+                </span>
+              </button>
+            </>
           )}
         </div>
       </div>
