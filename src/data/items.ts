@@ -14,11 +14,12 @@ export type Item = {
   id: string
   title: string
   description?: string
-  prefectureId: number
+  prefectureId?: number
   cityName?: string
   status: ItemStatus
   tags: ItemTag[]
   mediaUrl?: string
+  groupIds?: string[]
   createdAt: string
   updatedAt: string
 }

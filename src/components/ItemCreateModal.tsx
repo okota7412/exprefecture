@@ -1,8 +1,9 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import { customInstance } from '@/api/client'
+import type { Group } from '@/data/groups'
 import type { ItemStatus, ItemTag } from '@/data/items'
 import { getStatusLabel, getTagLabel } from '@/data/items'
 import { cn } from '@/lib/utils'
@@ -10,7 +11,7 @@ import { cn } from '@/lib/utils'
 type ItemCreateModalProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  prefectureId: number
+  defaultGroupIds?: string[]
   onSuccess: () => void
 }
 
@@ -30,10 +31,10 @@ const ITEM_TAGS: ItemTag[] = [
 ]
 
 export const ItemCreateModal = ({
+  defaultGroupIds = [],
   onOpenChange,
   onSuccess,
   open,
-  prefectureId,
 }: ItemCreateModalProps) => {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -41,8 +42,42 @@ export const ItemCreateModal = ({
   const [status, setStatus] = useState<ItemStatus>('not_visited')
   const [tags, setTags] = useState<ItemTag[]>([])
   const [mediaUrl, setMediaUrl] = useState('')
+  const [selectedGroupIds, setSelectedGroupIds] =
+    useState<string[]>(defaultGroupIds)
+  const [groups, setGroups] = useState<Group[]>([])
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  // グループ一覧を取得
+  useEffect(() => {
+    const fetchGroups = async () => {
+      setIsLoadingGroups(true)
+      try {
+        const response = await customInstance.get<Group[]>('/api/groups')
+        setGroups(response.data)
+        // デフォルトグループIDが指定されている場合は選択状態にする
+        if (defaultGroupIds.length > 0) {
+          setSelectedGroupIds(defaultGroupIds)
+        }
+      } catch (err) {
+        console.error('Failed to fetch groups:', err)
+      } finally {
+        setIsLoadingGroups(false)
+      }
+    }
+
+    if (open) {
+      fetchGroups()
+    }
+  }, [open, defaultGroupIds])
+
+  // モーダルが開かれた時にデフォルトグループIDを設定
+  useEffect(() => {
+    if (open && defaultGroupIds.length > 0) {
+      setSelectedGroupIds(defaultGroupIds)
+    }
+  }, [open, defaultGroupIds])
 
   const handleTagToggle = (tag: ItemTag) => {
     setTags(prev => {
@@ -50,6 +85,16 @@ export const ItemCreateModal = ({
         return prev.filter(t => t !== tag)
       } else {
         return [...prev, tag]
+      }
+    })
+  }
+
+  const handleGroupToggle = (groupId: string) => {
+    setSelectedGroupIds(prev => {
+      if (prev.includes(groupId)) {
+        return prev.filter(id => id !== groupId)
+      } else {
+        return [...prev, groupId]
       }
     })
   }
@@ -70,11 +115,11 @@ export const ItemCreateModal = ({
       await customInstance.post('/api/items', {
         title,
         description: description || undefined,
-        prefectureId,
         cityName: cityName || undefined,
         status,
         tags,
         mediaUrl: mediaUrl || undefined,
+        groupIds: selectedGroupIds.length > 0 ? selectedGroupIds : undefined,
       })
 
       // 成功時はフォームをリセットしてモーダルを閉じる
@@ -84,6 +129,7 @@ export const ItemCreateModal = ({
       setStatus('not_visited')
       setTags([])
       setMediaUrl('')
+      setSelectedGroupIds(defaultGroupIds)
       onOpenChange(false)
       onSuccess()
     } catch (err) {
@@ -115,6 +161,7 @@ export const ItemCreateModal = ({
       setStatus('not_visited')
       setTags([])
       setMediaUrl('')
+      setSelectedGroupIds(defaultGroupIds)
       setError(null)
     }
     onOpenChange(newOpen)
@@ -183,6 +230,43 @@ export const ItemCreateModal = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="例: 港区"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                グループ
+              </label>
+              {isLoadingGroups ? (
+                <div className="text-sm text-gray-500 py-2">読み込み中...</div>
+              ) : groups.length === 0 ? (
+                <div className="text-sm text-gray-500 py-2">
+                  グループがありません。まずグループを作成してください。
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto p-2 border border-gray-300 rounded-md">
+                  {groups.map(group => (
+                    <label
+                      key={group.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedGroupIds.includes(group.id)}
+                        onChange={() => handleGroupToggle(group.id)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {group.name}
+                      </span>
+                      {group.description && (
+                        <span className="text-xs text-gray-500 ml-auto">
+                          {group.description}
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -272,6 +356,12 @@ export const ItemCreateModal = ({
               </button>
             </div>
           </form>
+          {selectedGroupIds.length === 0 && (
+            <div className="mt-2 text-xs text-amber-600">
+              注意:
+              グループを選択しない場合、このアイテムはどのグループにも所属しません。
+            </div>
+          )}
 
           <Dialog.Close asChild>
             <button

@@ -30,11 +30,16 @@ export const itemTagSchema = z.enum([
 export const createItemSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
   description: z.string().max(1000, 'Description is too long').optional(),
-  prefectureId: z.number().int().positive('Prefecture ID must be positive'),
+  prefectureId: z
+    .number()
+    .int()
+    .positive('Prefecture ID must be positive')
+    .optional(),
   cityName: z.string().max(100, 'City name is too long').optional(),
   status: itemStatusSchema.default('not_visited'),
   tags: z.array(itemTagSchema).min(1, 'At least one tag is required'),
   mediaUrl: z.string().url('Invalid URL format').optional(),
+  groupIds: z.array(z.string().uuid('Invalid group ID format')).optional(),
 })
 
 export type CreateItemDto = z.infer<typeof createItemSchema>
@@ -58,12 +63,13 @@ export interface ItemResponse {
   id: string
   title: string
   description?: string
-  prefectureId: number
+  prefectureId?: number
   cityName?: string
   status: string
   tags: string[]
   mediaUrl?: string
   userId: string
+  groupIds?: string[]
   createdAt: string
   updatedAt: string
 }

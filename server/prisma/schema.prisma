@@ -19,6 +19,7 @@ model User {
   updatedAt    DateTime       @updatedAt @map("updated_at")
   refreshTokens RefreshToken[]
   items        Item[]
+  groups       Group[]
 
   @@map("users")
 }
@@ -41,7 +42,7 @@ model Item {
   id          String   @id @default(uuid())
   title       String
   description String?
-  prefectureId Int
+  prefectureId Int?
   cityName    String?
   status      String   @default("not_visited")
   tags        String   // JSON配列として保存
@@ -51,9 +52,39 @@ model Item {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groups ItemGroup[]
 
   @@map("items")
   @@index([prefectureId])
   @@index([userId])
 }
 
+model Group {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  userId      String      @map("user_id")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ItemGroup[]
+
+  @@map("groups")
+  @@index([userId])
+}
+
+model ItemGroup {
+  id        String   @id @default(uuid())
+  itemId    String   @map("item_id")
+  groupId   String   @map("group_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  item  Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@map("item_groups")
+  @@unique([itemId, groupId])
+  @@index([itemId])
+  @@index([groupId])
+}
