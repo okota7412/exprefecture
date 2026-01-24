@@ -2,11 +2,13 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
 
+import { errorHandlerMiddleware } from './middleware/error-handler.js'
 import { clearRateLimitStore } from './middleware/rate-limit.js'
 import accountGroupRoutes from './routes/account-groups.js'
 import authRoutes from './routes/auth.js'
 import groupRoutes from './routes/groups.js'
 import itemRoutes from './routes/items.js'
+import { info, error as logError } from './utils/logger.js'
 import prisma from './utils/prisma.js'
 
 const app = express()
@@ -14,10 +16,11 @@ const PORT = process.env.PORT || 8080
 
 // 環境変数の確認
 if (!process.env.ACCESS_TOKEN_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
-  console.error(
-    'ERROR: ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET must be set'
+  logError('ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET must be set', 'Server')
+  logError(
+    'Please copy .env.example to .env and set the required values',
+    'Server'
   )
-  console.error('Please copy .env.example to .env and set the required values')
   process.exit(1)
 }
 
@@ -79,7 +82,10 @@ app.get('/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       database: 'connected',
     })
-  } catch {
+  } catch (error) {
+    // エラーをログに記録
+    const { error: logError } = await import('./utils/logger.js')
+    logError('Health check failed', 'Health', error)
     res.status(503).json({
       status: 'error',
       timestamp: new Date().toISOString(),
@@ -89,19 +95,8 @@ app.get('/health', async (req, res) => {
   }
 })
 
-// エラーハンドリングミドルウェア
-app.use(
-  (
-    err: Error,
-    _req: express.Request,
-    res: express.Response,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _next: express.NextFunction
-  ) => {
-    console.error('Unhandled error:', err)
-    res.status(500).json({ message: 'Internal server error' })
-  }
-)
+// エラーハンドリングミドルウェア（ルートの後に配置）
+app.use(errorHandlerMiddleware)
 
 // 404ハンドラー
 app.use((req, res) => {
@@ -109,31 +104,31 @@ app.use((req, res) => {
 })
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`)
-  console.log(`📡 Health check: http://localhost:${PORT}/health`)
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
+  info(`Server running on port ${PORT}`, 'Server')
+  info(`Health check: http://localhost:${PORT}/health`, 'Server')
+  info(`Environment: ${process.env.NODE_ENV || 'development'}`, 'Server')
 })
 
 // グレースフルシャットダウン
 const gracefulShutdown = async (signal: string) => {
-  console.log(`\n${signal} received. Starting graceful shutdown...`)
+  info(`${signal} received. Starting graceful shutdown...`, 'Server')
 
   server.close(async () => {
-    console.log('HTTP server closed')
+    info('HTTP server closed', 'Server')
 
     try {
       await prisma.$disconnect()
-      console.log('Database connection closed')
+      info('Database connection closed', 'Server')
       process.exit(0)
     } catch (error) {
-      console.error('Error during shutdown:', error)
+      logError('Error during shutdown', 'Server', error)
       process.exit(1)
     }
   })
 
   // 強制終了のタイムアウト（30秒）
   setTimeout(() => {
-    console.error('Forced shutdown after timeout')
+    logError('Forced shutdown after timeout', 'Server')
     process.exit(1)
   }, 30000)
 }

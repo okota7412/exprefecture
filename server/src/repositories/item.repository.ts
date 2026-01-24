@@ -2,6 +2,7 @@
  * アイテムリポジトリ（データアクセス層）
  */
 import type { CreateItemDto } from '../dto/item.dto.js'
+import { debug } from '../utils/logger.js'
 import prisma from '../utils/prisma.js'
 
 export interface Item {
@@ -14,6 +15,7 @@ export interface Item {
   tags: string // JSON文字列
   mediaUrl: string | null
   userId: string
+  accountGroupId: string
   createdAt: Date
   updatedAt: Date
 }
@@ -38,13 +40,13 @@ export class ItemRepository implements IItemRepository {
   async create(
     data: CreateItemDto & { userId: string; accountGroupId: string }
   ): Promise<Item> {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemRepository] create: userId=${data.userId}, accountGroupId=${data.accountGroupId}, title=${data.title}`
-      )
-    }
+    debug(
+      `create: userId=${data.userId}, accountGroupId=${data.accountGroupId}, title=${data.title}`,
+      'ItemRepository'
+    )
     // グループ関連を含めて作成
     const item = await prisma.$transaction(async tx => {
+      // トランザクション内でエラーが発生した場合は自動的にロールバックされる
       const createdItem = await tx.item.create({
         data: {
           title: data.title,
@@ -58,11 +60,10 @@ export class ItemRepository implements IItemRepository {
           accountGroupId: data.accountGroupId,
         },
       })
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(
-          `[ItemRepository] create result: itemId=${createdItem.id}, accountGroupId=${createdItem.accountGroupId}`
-        )
-      }
+      debug(
+        `create result: itemId=${createdItem.id}, accountGroupId=${createdItem.accountGroupId}`,
+        'ItemRepository'
+      )
 
       // グループとの関連を作成（SQLiteではskipDuplicatesが使えないため、個別に作成）
       if (data.groupIds && data.groupIds.length > 0) {
@@ -108,11 +109,10 @@ export class ItemRepository implements IItemRepository {
     prefectureId: number,
     accountGroupId?: string
   ): Promise<Item[]> {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemRepository] findByPrefectureId: prefectureId=${prefectureId}, accountGroupId=${accountGroupId}`
-      )
-    }
+    debug(
+      `findByPrefectureId: prefectureId=${prefectureId}, accountGroupId=${accountGroupId}`,
+      'ItemRepository'
+    )
     const items = await prisma.item.findMany({
       where: {
         prefectureId,
@@ -120,11 +120,7 @@ export class ItemRepository implements IItemRepository {
       },
       orderBy: { createdAt: 'desc' },
     })
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemRepository] findByPrefectureId: found ${items.length} items`
-      )
-    }
+    debug(`findByPrefectureId: found ${items.length} items`, 'ItemRepository')
 
     return items
   }
@@ -133,11 +129,10 @@ export class ItemRepository implements IItemRepository {
     groupId: string,
     accountGroupId?: string
   ): Promise<Item[]> {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemRepository] findByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}`
-      )
-    }
+    debug(
+      `findByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}`,
+      'ItemRepository'
+    )
     const itemGroups = await prisma.itemGroup.findMany({
       where: { groupId },
       include: {
@@ -145,36 +140,28 @@ export class ItemRepository implements IItemRepository {
       },
       orderBy: { createdAt: 'desc' },
     })
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemRepository] findByGroupId: found ${itemGroups.length} itemGroups`
-      )
-    }
+    debug(
+      `findByGroupId: found ${itemGroups.length} itemGroups`,
+      'ItemRepository'
+    )
 
     // アイテムをフィルタリング（nullを除外、accountGroupIdでフィルタリング）
     let items = itemGroups
       .map(ig => ig.item)
       .filter((item): item is NonNullable<typeof item> => item !== null)
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemRepository] findByGroupId: after null filter: ${items.length} items`
-      )
-    }
+    debug(
+      `findByGroupId: after null filter: ${items.length} items`,
+      'ItemRepository'
+    )
 
     // accountGroupIdでフィルタリング
     if (accountGroupId) {
       const beforeFilterCount = items.length
       items = items.filter(item => item.accountGroupId === accountGroupId)
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(
-          `[ItemRepository] findByGroupId: after accountGroupId filter: ${items.length} items (was ${beforeFilterCount})`
-        )
-        items.forEach(item => {
-          console.log(
-            `  - Item: ${item.id}, accountGroupId: ${item.accountGroupId}, matches: ${item.accountGroupId === accountGroupId}`
-          )
-        })
-      }
+      debug(
+        `findByGroupId: after accountGroupId filter: ${items.length} items (was ${beforeFilterCount})`,
+        'ItemRepository'
+      )
     }
 
     // ソート

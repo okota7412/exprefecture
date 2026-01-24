@@ -2,20 +2,23 @@
  * 認証ルーター（コントローラー層）
  */
 import express, { type Request, type Response } from 'express'
-import { z } from 'zod'
 
 import { loginSchema, signupSchema } from '../dto/auth.dto.js'
 import { authenticateToken, type AuthRequest } from '../middleware/auth.js'
 import { verifyCsrfToken, getCsrfToken } from '../middleware/csrf.js'
+import { asyncHandler } from '../middleware/error-handler.js'
 import {
   loginRateLimiter,
   signupRateLimiter,
 } from '../middleware/rate-limit.js'
-import { authService, AuthError } from '../services/auth.service.js'
+import { authService } from '../services/auth.service.js'
 import {
   REFRESH_TOKEN_COOKIE_NAME,
   REFRESH_TOKEN_COOKIE_OPTIONS,
 } from '../utils/cookie.js'
+import { AuthenticationError, NotFoundError } from '../utils/error-handler.js'
+import { error as logError } from '../utils/logger.js'
+import { getClientIp, getUserAgent } from '../utils/request.js'
 
 const router = express.Router()
 
@@ -31,50 +34,24 @@ router.post(
   '/signup',
   signupRateLimiter,
   verifyCsrfToken,
-  async (req: Request, res: Response) => {
-    try {
-      const validatedData = signupSchema.parse(req.body)
-      const ipAddress = req.ip || req.socket.remoteAddress || undefined
-      const userAgent = req.headers['user-agent']
-      const result = await authService.signup(
-        validatedData,
-        ipAddress,
-        userAgent
-      )
+  asyncHandler(async (req: Request, res: Response) => {
+    const validatedData = signupSchema.parse(req.body)
+    const ipAddress = getClientIp(req)
+    const userAgent = getUserAgent(req)
+    const result = await authService.signup(validatedData, ipAddress, userAgent)
 
-      // リフレッシュトークンをHttpOnly Cookieに設定
-      res.cookie(
-        REFRESH_TOKEN_COOKIE_NAME,
-        result.refreshToken,
-        REFRESH_TOKEN_COOKIE_OPTIONS
-      )
+    // リフレッシュトークンをHttpOnly Cookieに設定
+    res.cookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      result.refreshToken,
+      REFRESH_TOKEN_COOKIE_OPTIONS
+    )
 
-      res.status(201).json({
-        accessToken: result.accessToken,
-        user: result.user,
-      })
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({
-          message: 'Validation error',
-          errors: error.errors,
-        })
-      }
-
-      if (error instanceof AuthError) {
-        const statusCode =
-          error.code === 'EMAIL_EXISTS'
-            ? 409
-            : error.code === 'INVALID_CREDENTIALS'
-              ? 401
-              : 400
-        return res.status(statusCode).json({ message: error.message })
-      }
-
-      console.error('Signup error:', error)
-      return res.status(500).json({ message: 'Internal server error' })
-    }
-  }
+    res.status(201).json({
+      accessToken: result.accessToken,
+      user: result.user,
+    })
+  })
 )
 
 /**
@@ -84,44 +61,24 @@ router.post(
   '/login',
   loginRateLimiter,
   verifyCsrfToken,
-  async (req: Request, res: Response) => {
-    try {
-      const validatedData = loginSchema.parse(req.body)
-      const ipAddress = req.ip || req.socket.remoteAddress || undefined
-      const userAgent = req.headers['user-agent']
-      const result = await authService.login(
-        validatedData,
-        ipAddress,
-        userAgent
-      )
+  asyncHandler(async (req: Request, res: Response) => {
+    const validatedData = loginSchema.parse(req.body)
+    const ipAddress = getClientIp(req)
+    const userAgent = getUserAgent(req)
+    const result = await authService.login(validatedData, ipAddress, userAgent)
 
-      // リフレッシュトークンをHttpOnly Cookieに設定
-      res.cookie(
-        REFRESH_TOKEN_COOKIE_NAME,
-        result.refreshToken,
-        REFRESH_TOKEN_COOKIE_OPTIONS
-      )
+    // リフレッシュトークンをHttpOnly Cookieに設定
+    res.cookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      result.refreshToken,
+      REFRESH_TOKEN_COOKIE_OPTIONS
+    )
 
-      res.json({
-        accessToken: result.accessToken,
-        user: result.user,
-      })
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({
-          message: 'Validation error',
-          errors: error.errors,
-        })
-      }
-
-      if (error instanceof AuthError) {
-        return res.status(401).json({ message: error.message })
-      }
-
-      console.error('Login error:', error)
-      return res.status(500).json({ message: 'Internal server error' })
-    }
-  }
+    res.json({
+      accessToken: result.accessToken,
+      user: result.user,
+    })
+  })
 )
 
 /**
@@ -130,16 +87,16 @@ router.post(
 router.post(
   '/refresh',
   verifyCsrfToken,
-  async (req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME]
 
     if (!refreshToken) {
-      return res.status(401).json({ message: 'No refresh token provided' })
+      throw new AuthenticationError('No refresh token provided')
     }
 
     try {
-      const ipAddress = req.ip || req.socket.remoteAddress || undefined
-      const userAgent = req.headers['user-agent']
+      const ipAddress = getClientIp(req)
+      const userAgent = getUserAgent(req)
       const result = await authService.refresh(
         refreshToken,
         ipAddress,
@@ -147,16 +104,11 @@ router.post(
       )
       res.json(result)
     } catch (error) {
-      if (error instanceof AuthError) {
-        res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS)
-        return res.status(403).json({ message: error.message })
-      }
-
-      console.error('Refresh error:', error)
+      // エラーが発生した場合はCookieをクリア
       res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS)
-      return res.status(500).json({ message: 'Internal server error' })
+      throw error
     }
-  }
+  })
 )
 
 /**
@@ -165,24 +117,19 @@ router.post(
 router.get(
   '/me',
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
-    try {
-      const user = await authService.getUserById(req.user!.userId)
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await authService.getUserById(req.user.userId)
 
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' })
-      }
-
-      res.json({
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      })
-    } catch (error) {
-      console.error('Get user error:', error)
-      return res.status(500).json({ message: 'Internal server error' })
+    if (!user) {
+      throw new NotFoundError('User not found')
     }
-  }
+
+    res.json({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    })
+  })
 )
 
 /**
@@ -192,30 +139,33 @@ router.post(
   '/logout',
   authenticateToken,
   verifyCsrfToken,
-  async (req: AuthRequest, res: Response) => {
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+      throw new Error('User not authenticated')
+    }
+
     const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME]
 
     try {
       if (refreshToken) {
-        const ipAddress = req.ip || req.socket.remoteAddress || undefined
-        const userAgent = req.headers['user-agent']
+        const ipAddress = getClientIp(req)
+        const userAgent = getUserAgent(req)
         await authService.logout(
           refreshToken,
-          req.user!.userId,
+          req.user.userId,
           ipAddress,
           userAgent
         )
       }
-
-      res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS)
-      res.json({ message: 'Logged out successfully' })
     } catch (error) {
-      console.error('Logout error:', error)
-      // エラーが発生してもCookieはクリア
+      // エラーが発生してもCookieはクリア（ログアウトは常に成功として扱う）
+      // エラーはログに記録するが、レスポンスには影響しない
+      logError('Logout error (non-fatal)', 'Auth Route', error)
+    } finally {
       res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS)
       res.json({ message: 'Logged out successfully' })
     }
-  }
+  })
 )
 
 export default router
