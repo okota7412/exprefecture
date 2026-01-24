@@ -4,12 +4,17 @@
 import express, { type Response } from 'express'
 
 import { createGroupSchema, updateGroupSchema } from '../dto/group.dto.js'
-import { authenticateToken, type AuthRequest } from '../middleware/auth.js'
+import {
+  authenticateToken,
+  requireAuth,
+  type AuthRequest,
+} from '../middleware/auth.js'
 import { verifyCsrfToken } from '../middleware/csrf.js'
 import { asyncHandler } from '../middleware/error-handler.js'
+import { validateUUIDParams } from '../middleware/validate-uuid.js'
 import { groupService } from '../services/group.service.js'
 import { ValidationError } from '../utils/error-handler.js'
-import { isValidUUID } from '../utils/validation.js'
+import { getAccountGroupId } from '../utils/request.js'
 
 const router = express.Router()
 
@@ -20,13 +25,10 @@ router.get(
   '/',
   authenticateToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
-    const accountGroupId = req.query.accountGroupId as string | undefined
+    const user = requireAuth(req)
+    const accountGroupId = getAccountGroupId(req)
     const groups = await groupService.getGroupsByUserId(
-      req.user.userId,
+      user.userId,
       accountGroupId
     )
     res.json(groups)
@@ -41,13 +43,9 @@ router.post(
   authenticateToken,
   verifyCsrfToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const validatedData = createGroupSchema.parse(req.body)
-    const accountGroupId =
-      req.body.accountGroupId || (req.query.accountGroupId as string)
+    const accountGroupId = getAccountGroupId(req)
 
     if (!accountGroupId) {
       throw new ValidationError('accountGroupId is required')
@@ -55,7 +53,7 @@ router.post(
 
     const group = await groupService.createGroup(
       validatedData,
-      req.user.userId,
+      user.userId,
       accountGroupId
     )
 
@@ -69,20 +67,14 @@ router.post(
 router.get(
   '/:id',
   authenticateToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid group ID format')
-    }
-
-    const accountGroupId = req.query.accountGroupId as string | undefined
+    const accountGroupId = getAccountGroupId(req)
     const group = await groupService.getGroupById(
       id,
-      req.user.userId,
+      user.userId,
       accountGroupId
     )
     res.json(group)
@@ -96,24 +88,16 @@ router.patch(
   '/:id',
   authenticateToken,
   verifyCsrfToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid group ID format')
-    }
-
     const validatedData = updateGroupSchema.parse(req.body)
-    const accountGroupId =
-      req.body.accountGroupId ||
-      (req.query.accountGroupId as string | undefined)
+    const accountGroupId = getAccountGroupId(req)
     const group = await groupService.updateGroup(
       id,
       validatedData,
-      req.user.userId,
+      user.userId,
       accountGroupId
     )
 
@@ -128,18 +112,12 @@ router.delete(
   '/:id',
   authenticateToken,
   verifyCsrfToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid group ID format')
-    }
-
-    const accountGroupId = req.query.accountGroupId as string | undefined
-    await groupService.deleteGroup(id, req.user.userId, accountGroupId)
+    const accountGroupId = getAccountGroupId(req)
+    await groupService.deleteGroup(id, user.userId, accountGroupId)
     res.status(204).send()
   })
 )

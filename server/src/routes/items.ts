@@ -4,12 +4,18 @@
 import express, { type Response } from 'express'
 
 import { createItemSchema, deleteItemsSchema } from '../dto/item.dto.js'
-import { authenticateToken, type AuthRequest } from '../middleware/auth.js'
+import {
+  authenticateToken,
+  requireAuth,
+  type AuthRequest,
+} from '../middleware/auth.js'
 import { verifyCsrfToken } from '../middleware/csrf.js'
 import { asyncHandler } from '../middleware/error-handler.js'
+import { validateUUIDParams } from '../middleware/validate-uuid.js'
 import { itemService } from '../services/item.service.js'
 import { NotFoundError, ValidationError } from '../utils/error-handler.js'
 import { debug } from '../utils/logger.js'
+import { getAccountGroupId } from '../utils/request.js'
 import { isValidUUID } from '../utils/validation.js'
 
 const router = express.Router()
@@ -22,13 +28,9 @@ router.post(
   authenticateToken,
   verifyCsrfToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const validatedData = createItemSchema.parse(req.body)
-    const accountGroupId =
-      req.body.accountGroupId || (req.query.accountGroupId as string)
+    const accountGroupId = getAccountGroupId(req)
 
     if (!accountGroupId) {
       throw new ValidationError('accountGroupId is required')
@@ -36,7 +38,7 @@ router.post(
 
     const item = await itemService.createItem(
       validatedData,
-      req.user.userId,
+      user.userId,
       accountGroupId
     )
 
@@ -54,15 +56,12 @@ router.get(
   '/',
   authenticateToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const prefectureId = req.query.prefectureId
       ? parseInt(req.query.prefectureId as string, 10)
       : undefined
     const groupId = req.query.groupId as string | undefined
-    const accountGroupId = req.query.accountGroupId as string | undefined
+    const accountGroupId = getAccountGroupId(req)
 
     // accountGroupIdが必須
     if (!accountGroupId) {
@@ -75,12 +74,12 @@ router.get(
         throw new ValidationError('Invalid groupId format')
       }
       debug(
-        `getItemsByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}, userId=${req.user.userId}`,
+        `getItemsByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}, userId=${user.userId}`,
         'Items Route'
       )
       const items = await itemService.getItemsByGroupId(
         groupId,
-        req.user.userId,
+        user.userId,
         accountGroupId
       )
       debug(`getItemsByGroupId result: ${items.length} items`, 'Items Route')
@@ -103,7 +102,7 @@ router.get(
 
     // クエリパラメータがない場合はユーザーの全アイテムを取得
     const items = await itemService.getItemsByUserId(
-      req.user.userId,
+      user.userId,
       accountGroupId
     )
     res.json(items)
@@ -116,12 +115,9 @@ router.get(
 router.get(
   '/:id',
   authenticateToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid item ID format')
-    }
-
     const item = await itemService.getItemById(id)
 
     if (!item) {
@@ -140,14 +136,11 @@ router.delete(
   authenticateToken,
   verifyCsrfToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const validatedData = deleteItemsSchema.parse(req.body)
     const deletedCount = await itemService.deleteItems(
       validatedData.ids,
-      req.user.userId
+      user.userId
     )
 
     res.status(200).json({
@@ -164,17 +157,12 @@ router.delete(
   '/:id',
   authenticateToken,
   verifyCsrfToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid item ID format')
-    }
 
-    await itemService.deleteItem(id, req.user.userId)
+    await itemService.deleteItem(id, user.userId)
     res.status(204).send()
   })
 )

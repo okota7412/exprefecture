@@ -9,12 +9,15 @@ import {
   sendInvitationSchema,
   updateAccountGroupSchema,
 } from '../dto/account-group.dto.js'
-import { authenticateToken, type AuthRequest } from '../middleware/auth.js'
+import {
+  authenticateToken,
+  requireAuth,
+  type AuthRequest,
+} from '../middleware/auth.js'
 import { verifyCsrfToken } from '../middleware/csrf.js'
 import { asyncHandler } from '../middleware/error-handler.js'
+import { validateUUIDParams } from '../middleware/validate-uuid.js'
 import { accountGroupService } from '../services/account-group.service.js'
-import { ValidationError } from '../utils/error-handler.js'
-import { isValidUUID } from '../utils/validation.js'
 
 const router = express.Router()
 
@@ -25,12 +28,9 @@ router.get(
   '/',
   authenticateToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const accountGroups = await accountGroupService.getAccountGroupsByUserId(
-      req.user.userId
+      user.userId
     )
     res.json(accountGroups)
   })
@@ -43,12 +43,9 @@ router.get(
   '/personal',
   authenticateToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const accountGroup = await accountGroupService.getPersonalAccountGroup(
-      req.user.userId
+      user.userId
     )
     res.json(accountGroup)
   })
@@ -62,13 +59,10 @@ router.get(
   '/invitations',
   authenticateToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const status = req.query.status as string | undefined
     const invitations = await accountGroupService.getInvitationsByInvitee(
-      req.user.userId,
+      user.userId,
       status
     )
     res.json(invitations)
@@ -84,15 +78,9 @@ router.post(
   authenticateToken,
   verifyCsrfToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const validatedData = respondToInvitationSchema.parse(req.body)
-    await accountGroupService.respondToInvitation(
-      validatedData,
-      req.user.userId
-    )
+    await accountGroupService.respondToInvitation(validatedData, user.userId)
 
     res.status(200).json({ message: 'Invitation responded successfully' })
   })
@@ -106,14 +94,11 @@ router.post(
   authenticateToken,
   verifyCsrfToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const validatedData = createAccountGroupSchema.parse(req.body)
     const accountGroup = await accountGroupService.createAccountGroup(
       validatedData,
-      req.user.userId
+      user.userId
     )
 
     res.status(201).json(accountGroup)
@@ -126,19 +111,13 @@ router.post(
 router.get(
   '/:id',
   authenticateToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid account group ID format')
-    }
-
     const accountGroup = await accountGroupService.getAccountGroupById(
       id,
-      req.user.userId
+      user.userId
     )
     res.json(accountGroup)
   })
@@ -151,21 +130,15 @@ router.patch(
   '/:id',
   authenticateToken,
   verifyCsrfToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid account group ID format')
-    }
-
     const validatedData = updateAccountGroupSchema.parse(req.body)
     const accountGroup = await accountGroupService.updateAccountGroup(
       id,
       validatedData,
-      req.user.userId
+      user.userId
     )
 
     res.json(accountGroup)
@@ -179,17 +152,11 @@ router.delete(
   '/:id',
   authenticateToken,
   verifyCsrfToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid account group ID format')
-    }
-
-    await accountGroupService.deleteAccountGroup(id, req.user.userId)
+    await accountGroupService.deleteAccountGroup(id, user.userId)
     res.status(204).send()
   })
 )
@@ -200,17 +167,11 @@ router.delete(
 router.get(
   '/:id/members',
   authenticateToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid account group ID format')
-    }
-
-    const members = await accountGroupService.getMembers(id, req.user.userId)
+    const members = await accountGroupService.getMembers(id, user.userId)
     res.json(members)
   })
 )
@@ -222,17 +183,11 @@ router.post(
   '/:id/leave',
   authenticateToken,
   verifyCsrfToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid account group ID format')
-    }
-
-    await accountGroupService.leaveAccountGroup(id, req.user.userId)
+    await accountGroupService.leaveAccountGroup(id, user.userId)
     res.status(200).json({ message: 'Successfully left the account group' })
   })
 )
@@ -244,20 +199,11 @@ router.delete(
   '/:id/members/:userId',
   authenticateToken,
   verifyCsrfToken,
+  validateUUIDParams(['id', 'userId']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id, userId } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid account group ID format')
-    }
-    if (!isValidUUID(userId)) {
-      throw new ValidationError('Invalid user ID format')
-    }
-
-    await accountGroupService.removeMember(id, userId, req.user.userId)
+    await accountGroupService.removeMember(id, userId, user.userId)
     res.status(204).send()
   })
 )
@@ -269,21 +215,15 @@ router.post(
   '/:id/invitations',
   authenticateToken,
   verifyCsrfToken,
+  validateUUIDParams(['id']),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
+    const user = requireAuth(req)
     const { id } = req.params
-    if (!isValidUUID(id)) {
-      throw new ValidationError('Invalid account group ID format')
-    }
-
     const validatedData = sendInvitationSchema.parse(req.body)
     const invitation = await accountGroupService.sendInvitation(
       id,
       validatedData,
-      req.user.userId
+      user.userId
     )
 
     res.status(201).json(invitation)

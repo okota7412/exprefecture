@@ -18,6 +18,7 @@ import {
 } from '../utils/cookie.js'
 import { AuthenticationError, NotFoundError } from '../utils/error-handler.js'
 import { error as logError } from '../utils/logger.js'
+import { getClientIp, getUserAgent } from '../utils/request.js'
 
 const router = express.Router()
 
@@ -35,8 +36,8 @@ router.post(
   verifyCsrfToken,
   asyncHandler(async (req: Request, res: Response) => {
     const validatedData = signupSchema.parse(req.body)
-    const ipAddress = req.ip || req.socket.remoteAddress || undefined
-    const userAgent = req.headers['user-agent']
+    const ipAddress = getClientIp(req)
+    const userAgent = getUserAgent(req)
     const result = await authService.signup(validatedData, ipAddress, userAgent)
 
     // リフレッシュトークンをHttpOnly Cookieに設定
@@ -62,8 +63,8 @@ router.post(
   verifyCsrfToken,
   asyncHandler(async (req: Request, res: Response) => {
     const validatedData = loginSchema.parse(req.body)
-    const ipAddress = req.ip || req.socket.remoteAddress || undefined
-    const userAgent = req.headers['user-agent']
+    const ipAddress = getClientIp(req)
+    const userAgent = getUserAgent(req)
     const result = await authService.login(validatedData, ipAddress, userAgent)
 
     // リフレッシュトークンをHttpOnly Cookieに設定
@@ -94,8 +95,8 @@ router.post(
     }
 
     try {
-      const ipAddress = req.ip || req.socket.remoteAddress || undefined
-      const userAgent = req.headers['user-agent']
+      const ipAddress = getClientIp(req)
+      const userAgent = getUserAgent(req)
       const result = await authService.refresh(
         refreshToken,
         ipAddress,
@@ -117,10 +118,6 @@ router.get(
   '/me',
   authenticateToken,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    if (!req.user) {
-      throw new Error('User not authenticated')
-    }
-
     const user = await authService.getUserById(req.user.userId)
 
     if (!user) {
@@ -151,8 +148,8 @@ router.post(
 
     try {
       if (refreshToken) {
-        const ipAddress = req.ip || req.socket.remoteAddress || undefined
-        const userAgent = req.headers['user-agent']
+        const ipAddress = getClientIp(req)
+        const userAgent = getUserAgent(req)
         await authService.logout(
           refreshToken,
           req.user.userId,
