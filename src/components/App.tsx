@@ -1,5 +1,6 @@
 import { Routes, Route, BrowserRouter } from 'react-router-dom'
 
+import { AccountGroupProvider } from '@/contexts/AccountGroupContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 
 import { LoginPage } from './auth/LoginPage'
@@ -15,59 +16,61 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* 認証ページ（未認証ユーザーのみアクセス可能） */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <PublicRoute>
-                <SignupPage />
-              </PublicRoute>
-            }
-          />
+        <AccountGroupProvider>
+          <Routes>
+            {/* 認証ページ（未認証ユーザーのみアクセス可能） */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <PublicRoute>
+                  <SignupPage />
+                </PublicRoute>
+              }
+            />
 
-          {/* 保護されたページ（認証が必要） */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <GroupHome />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/groups/:groupId"
-            element={
-              <ProtectedRoute>
-                <GroupDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/regions/:regionId"
-            element={
-              <ProtectedRoute>
-                <PrefectureHome />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/prefectures/:prefectureId"
-            element={
-              <ProtectedRoute>
-                <PrefectureDetail />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+            {/* 保護されたページ（認証が必要） */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <GroupHome />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/groups/:groupId"
+              element={
+                <ProtectedRoute>
+                  <GroupDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/regions/:regionId"
+              element={
+                <ProtectedRoute>
+                  <PrefectureHome />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/prefectures/:prefectureId"
+              element={
+                <ProtectedRoute>
+                  <PrefectureDetail />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </AccountGroupProvider>
       </AuthProvider>
     </BrowserRouter>
   )

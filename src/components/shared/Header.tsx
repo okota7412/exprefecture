@@ -3,6 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '@/contexts/AuthContext'
 
+import { AccountGroupSelector } from './AccountGroupSelector'
+import { NotificationButton } from './NotificationButton'
+
 export const Header = () => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -45,6 +48,10 @@ export const Header = () => {
         <div className="flex items-center gap-3">
           {!isLoginPage && !isSignupPage && user && (
             <>
+              {/* 通知ボタン */}
+              <NotificationButton />
+              {/* アカウントグループ切り替え */}
+              <AccountGroupSelector />
               {/* アカウント名 */}
               <div className="text-sm md:text-base font-medium truncate max-w-[200px] md:max-w-none">
                 {user.email || `ユーザーID: ${user.userId}`}

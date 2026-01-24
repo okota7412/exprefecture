@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import { customInstance } from '@/api/client'
+import { useAccountGroup } from '@/contexts/AccountGroupContext'
 import type { Group } from '@/data/groups'
 import type { Item, ItemStatus, ItemTag } from '@/data/items'
 
@@ -17,6 +18,7 @@ import { SearchBar } from './shared/SearchBar'
 export const GroupDetail = () => {
   const { groupId } = useParams<{ groupId: string }>()
   const navigate = useNavigate()
+  const { currentAccountGroupId } = useAccountGroup()
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [items, setItems] = useState<Item[]>([])
@@ -29,27 +31,57 @@ export const GroupDetail = () => {
   const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchGroup = useCallback(async () => {
-    if (!groupId) return
+    if (!groupId || !currentAccountGroupId) return
 
     try {
-      const response = await customInstance.get<Group>(`/api/groups/${groupId}`)
+      const response = await customInstance.get<Group>(
+        `/api/groups/${groupId}`,
+        {
+          params: { accountGroupId: currentAccountGroupId },
+        }
+      )
       setGroup(response.data)
     } catch (err) {
       console.error('Failed to fetch group:', err)
       setError('グループの取得に失敗しました')
       setGroup(null)
     }
-  }, [groupId])
+  }, [groupId, currentAccountGroupId])
 
   const fetchItems = useCallback(async () => {
-    if (!groupId) return
+    if (!groupId || !currentAccountGroupId) {
+      console.log('[GroupDetail] fetchItems skipped:', {
+        groupId,
+        currentAccountGroupId,
+      })
+      return
+    }
 
+    console.log('[GroupDetail] fetchItems:', { groupId, currentAccountGroupId })
     setIsLoading(true)
     setError(null)
     try {
       const response = await customInstance.get<Item[]>('/api/items', {
-        params: { groupId },
+        params: { groupId, accountGroupId: currentAccountGroupId },
       })
+      console.log(
+        '[GroupDetail] fetchItems result:',
+        response.data.length,
+        'items'
+      )
+
+      if (response.data.length > 0 && process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        console.log(
+          '[GroupDetail] fetchItems items:',
+          response.data.map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            accountGroupId: item.accountGroupId,
+            userId: item.userId,
+          }))
+        )
+      }
       const itemsData: Item[] = response.data.map(item => ({
         id: item.id,
         title: item.title,
@@ -71,20 +103,28 @@ export const GroupDetail = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [groupId])
+  }, [groupId, currentAccountGroupId])
 
   // APIからグループとアイテムを取得
   useEffect(() => {
+    console.log('[GroupDetail] useEffect:', { groupId, currentAccountGroupId })
     if (!groupId) {
+      console.log('[GroupDetail] useEffect: Skipping (no groupId)')
       setIsLoading(false)
       setItems([])
       setGroup(null)
       return
     }
 
+    if (!currentAccountGroupId) {
+      console.log(
+        '[GroupDetail] useEffect: Skipping fetchItems (no currentAccountGroupId)'
+      )
+    }
+
     fetchGroup()
     fetchItems()
-  }, [groupId, fetchGroup, fetchItems])
+  }, [groupId, currentAccountGroupId, fetchGroup, fetchItems])
 
   if (!groupId) {
     return (

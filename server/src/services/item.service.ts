@@ -15,27 +15,72 @@ export class ItemError extends Error {
 }
 
 export interface IItemService {
-  createItem(dto: CreateItemDto, userId: string): Promise<ItemResponse>
-  getItemsByPrefecture(prefectureId: number): Promise<ItemResponse[]>
-  getItemsByGroupId(groupId: string, userId: string): Promise<ItemResponse[]>
+  createItem(
+    dto: CreateItemDto,
+    userId: string,
+    accountGroupId: string
+  ): Promise<ItemResponse>
+  getItemsByPrefecture(
+    prefectureId: number,
+    accountGroupId?: string
+  ): Promise<ItemResponse[]>
+  getItemsByGroupId(
+    groupId: string,
+    userId: string,
+    accountGroupId?: string
+  ): Promise<ItemResponse[]>
   getItemById(id: string): Promise<ItemResponse | null>
-  getItemsByUserId(userId: string): Promise<ItemResponse[]>
+  getItemsByUserId(
+    userId: string,
+    accountGroupId?: string
+  ): Promise<ItemResponse[]>
   deleteItem(id: string, userId: string): Promise<void>
   deleteItems(ids: string[], userId: string): Promise<number>
 }
 
 export class ItemService implements IItemService {
-  async createItem(dto: CreateItemDto, userId: string): Promise<ItemResponse> {
+  async createItem(
+    dto: CreateItemDto,
+    userId: string,
+    accountGroupId: string
+  ): Promise<ItemResponse> {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemService] createItem: userId=${userId}, accountGroupId=${accountGroupId}, prefectureId=${dto.prefectureId}`
+      )
+    }
     const item = await itemRepository.create({
       ...dto,
       userId,
+      accountGroupId,
     })
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemService] createItem result: itemId=${item.id}, accountGroupId=${item.accountGroupId}`
+      )
+    }
 
     return this.mapToResponse(item)
   }
 
-  async getItemsByPrefecture(prefectureId: number): Promise<ItemResponse[]> {
-    const items = await itemRepository.findByPrefectureId(prefectureId)
+  async getItemsByPrefecture(
+    prefectureId: number,
+    accountGroupId?: string
+  ): Promise<ItemResponse[]> {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemService] getItemsByPrefecture: prefectureId=${prefectureId}, accountGroupId=${accountGroupId}`
+      )
+    }
+    const items = await itemRepository.findByPrefectureId(
+      prefectureId,
+      accountGroupId
+    )
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemService] getItemsByPrefecture: found ${items.length} items`
+      )
+    }
     const itemsWithGroups = await Promise.all(
       items.map(async item => {
         const groupIds = await itemRepository.getGroupIdsByItemId(item.id)
@@ -47,17 +92,30 @@ export class ItemService implements IItemService {
 
   async getItemsByGroupId(
     groupId: string,
-    userId: string
+    userId: string,
+    accountGroupId?: string
   ): Promise<ItemResponse[]> {
-    // グループがユーザーのものかチェック（簡易的な実装）
-    // 実際にはグループリポジトリでチェックする必要があるかもしれません
-    const items = await itemRepository.findByGroupId(groupId)
-
-    // ユーザーが所有するアイテムのみを返す
-    const userItems = items.filter(item => item.userId === userId)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemService] getItemsByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}, userId=${userId}`
+      )
+    }
+    // accountGroupIdでフィルタリングされたアイテムを取得
+    // アカウントグループのメンバー全員がアクセスできるように、userIdによるフィルタリングは行わない
+    const items = await itemRepository.findByGroupId(groupId, accountGroupId)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemService] getItemsByGroupId: found ${items.length} items`
+      )
+      items.forEach(item => {
+        console.log(
+          `  - Item: ${item.id}, title: ${item.title}, accountGroupId: ${item.accountGroupId}, userId: ${item.userId}, matches filter: ${item.accountGroupId === accountGroupId}`
+        )
+      })
+    }
 
     const itemsWithGroups = await Promise.all(
-      userItems.map(async item => {
+      items.map(async item => {
         const groupIds = await itemRepository.getGroupIdsByItemId(item.id)
         return this.mapToResponse(item, groupIds)
       })
@@ -74,8 +132,11 @@ export class ItemService implements IItemService {
     return this.mapToResponse(item, groupIds)
   }
 
-  async getItemsByUserId(userId: string): Promise<ItemResponse[]> {
-    const items = await itemRepository.findByUserId(userId)
+  async getItemsByUserId(
+    userId: string,
+    accountGroupId?: string
+  ): Promise<ItemResponse[]> {
+    const items = await itemRepository.findByUserId(userId, accountGroupId)
     const itemsWithGroups = await Promise.all(
       items.map(async item => {
         const groupIds = await itemRepository.getGroupIdsByItemId(item.id)

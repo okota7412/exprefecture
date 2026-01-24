@@ -19,7 +19,11 @@ const router = express.Router()
  */
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const groups = await groupService.getGroupsByUserId(req.user!.userId)
+    const accountGroupId = req.query.accountGroupId as string | undefined
+    const groups = await groupService.getGroupsByUserId(
+      req.user!.userId,
+      accountGroupId
+    )
     res.json(groups)
   } catch (error) {
     console.error('Get groups error:', error)
@@ -37,9 +41,19 @@ router.post(
   async (req: AuthRequest, res: Response) => {
     try {
       const validatedData = createGroupSchema.parse(req.body)
+      const accountGroupId =
+        req.body.accountGroupId || (req.query.accountGroupId as string)
+
+      if (!accountGroupId) {
+        return res.status(400).json({
+          message: 'accountGroupId is required',
+        })
+      }
+
       const group = await groupService.createGroup(
         validatedData,
-        req.user!.userId
+        req.user!.userId,
+        accountGroupId
       )
 
       res.status(201).json(group)
@@ -65,9 +79,11 @@ router.get(
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {
+      const accountGroupId = req.query.accountGroupId as string | undefined
       const group = await groupService.getGroupById(
         req.params.id,
-        req.user!.userId
+        req.user!.userId,
+        accountGroupId
       )
       res.json(group)
     } catch (error) {
@@ -96,10 +112,14 @@ router.patch(
   async (req: AuthRequest, res: Response) => {
     try {
       const validatedData = updateGroupSchema.parse(req.body)
+      const accountGroupId =
+        req.body.accountGroupId ||
+        (req.query.accountGroupId as string | undefined)
       const group = await groupService.updateGroup(
         req.params.id,
         validatedData,
-        req.user!.userId
+        req.user!.userId,
+        accountGroupId
       )
 
       res.json(group)
@@ -135,7 +155,12 @@ router.delete(
   verifyCsrfToken,
   async (req: AuthRequest, res: Response) => {
     try {
-      await groupService.deleteGroup(req.params.id, req.user!.userId)
+      const accountGroupId = req.query.accountGroupId as string | undefined
+      await groupService.deleteGroup(
+        req.params.id,
+        req.user!.userId,
+        accountGroupId
+      )
       res.status(204).send()
     } catch (error) {
       if (error instanceof ServiceGroupError) {
