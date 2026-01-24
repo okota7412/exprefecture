@@ -1,6 +1,7 @@
-import { MapPin, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
+import ikottoIcon from '@/assets/ikotto_icon.png'
 import { useAuth } from '@/contexts/AuthContext'
 
 import { AccountGroupSelector } from './AccountGroupSelector'
@@ -37,11 +38,13 @@ export const Header = () => {
         <Link
           to="/"
           className="flex items-center hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 rounded pl-4"
-          aria-label="WannaGo ホーム"
+          aria-label="Ikotto ホーム"
         >
-          <div className="bg-white/20 rounded-lg p-1.5 md:p-2">
-            <MapPin className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
-          </div>
+          <img
+            src={ikottoIcon}
+            alt="Ikotto"
+            className="w-8 h-8 md:w-10 md:h-10 object-contain bg-white/20 rounded-lg p-1"
+          />
         </Link>
 
         {/* アカウント名とログアウトボタン（右上） */}
