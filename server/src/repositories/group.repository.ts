@@ -14,9 +14,11 @@ export interface Group {
 }
 
 export interface IGroupRepository {
-  create(data: CreateGroupDto & { userId: string }): Promise<Group>
+  create(
+    data: CreateGroupDto & { userId: string; accountGroupId: string }
+  ): Promise<Group>
   findById(id: string): Promise<Group | null>
-  findByUserId(userId: string): Promise<Group[]>
+  findByUserId(userId: string, accountGroupId?: string): Promise<Group[]>
   update(id: string, data: UpdateGroupDto): Promise<Group>
   delete(id: string): Promise<void>
   countItemsByGroupId(groupId: string): Promise<number>
@@ -28,12 +30,15 @@ export interface IGroupRepository {
 }
 
 export class GroupRepository implements IGroupRepository {
-  async create(data: CreateGroupDto & { userId: string }): Promise<Group> {
+  async create(
+    data: CreateGroupDto & { userId: string; accountGroupId: string }
+  ): Promise<Group> {
     const group = await prisma.group.create({
       data: {
         name: data.name,
         description: data.description,
         userId: data.userId,
+        accountGroupId: data.accountGroupId,
       },
     })
 
@@ -48,9 +53,16 @@ export class GroupRepository implements IGroupRepository {
     return group
   }
 
-  async findByUserId(userId: string): Promise<Group[]> {
+  async findByUserId(
+    userId: string,
+    accountGroupId?: string
+  ): Promise<Group[]> {
+    // accountGroupIdが指定されている場合は、accountGroupIdのみでフィルタリング
+    // アカウントグループのメンバー全員がアクセスできるようにする
     const groups = await prisma.group.findMany({
-      where: { userId },
+      where: {
+        ...(accountGroupId ? { accountGroupId } : { userId }),
+      },
       orderBy: { createdAt: 'desc' },
     })
 

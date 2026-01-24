@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import { customInstance } from '@/api/client'
+import { useAccountGroup } from '@/contexts/AccountGroupContext'
 import type { Item, ItemStatus, ItemTag } from '@/data/items'
 import { prefectures } from '@/data/prefectures'
 import { getRegionById } from '@/data/regions'
@@ -18,6 +19,7 @@ import { SearchBar } from './shared/SearchBar'
 export const PrefectureDetail = () => {
   const { prefectureId } = useParams<{ prefectureId: string }>()
   const navigate = useNavigate()
+  const { currentAccountGroupId } = useAccountGroup()
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [items, setItems] = useState<Item[]>([])
@@ -35,14 +37,45 @@ export const PrefectureDetail = () => {
       : null
 
   const fetchItems = useCallback(async () => {
-    if (!prefectureIdNum) return
+    if (!prefectureIdNum || !currentAccountGroupId) {
+      console.log('[PrefectureDetail] fetchItems skipped:', {
+        prefectureIdNum,
+        currentAccountGroupId,
+      })
+      return
+    }
 
+    console.log('[PrefectureDetail] fetchItems:', {
+      prefectureIdNum,
+      currentAccountGroupId,
+    })
     setIsLoading(true)
     setError(null)
     try {
       const response = await customInstance.get<Item[]>('/api/items', {
-        params: { prefectureId: prefectureIdNum },
+        params: {
+          prefectureId: prefectureIdNum,
+          accountGroupId: currentAccountGroupId,
+        },
       })
+      console.log(
+        '[PrefectureDetail] fetchItems result:',
+        response.data.length,
+        'items'
+      )
+
+      if (response.data.length > 0 && process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        console.log(
+          '[PrefectureDetail] fetchItems items:',
+          response.data.map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            accountGroupId: item.accountGroupId,
+            userId: item.userId,
+          }))
+        )
+      }
       const itemsData: Item[] = response.data.map(item => ({
         id: item.id,
         title: item.title,
@@ -63,18 +96,26 @@ export const PrefectureDetail = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [prefectureIdNum])
+  }, [prefectureIdNum, currentAccountGroupId])
 
   // APIからアイテムを取得
   useEffect(() => {
-    if (!prefectureIdNum || !prefecture) {
+    console.log('[PrefectureDetail] useEffect:', {
+      prefectureIdNum,
+      prefecture: !!prefecture,
+      currentAccountGroupId,
+    })
+    if (!prefectureIdNum || !prefecture || !currentAccountGroupId) {
+      console.log(
+        '[PrefectureDetail] useEffect: Skipping fetchItems (missing required values)'
+      )
       setIsLoading(false)
       setItems([])
       return
     }
 
     fetchItems()
-  }, [prefectureIdNum, prefecture, fetchItems])
+  }, [prefectureIdNum, prefecture, currentAccountGroupId, fetchItems])
 
   if (!prefectureId) {
     return (

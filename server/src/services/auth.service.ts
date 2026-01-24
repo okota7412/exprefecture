@@ -16,6 +16,7 @@ import {
   verifyRefreshToken,
 } from '../utils/jwt.js'
 
+import { accountGroupService } from './account-group.service.js'
 import { auditLogService } from './audit-log.service.js'
 import { passwordService } from './password.service.js'
 
@@ -102,6 +103,14 @@ export class AuthService implements IAuthService {
       token: refreshToken,
       expiresAt,
     })
+
+    // 個人用アカウントグループを作成
+    try {
+      await accountGroupService.getPersonalAccountGroup(user.id)
+    } catch (error) {
+      // エラーが発生してもサインアップは続行（ログのみ記録）
+      console.error('Failed to create personal account group:', error)
+    }
 
     // 監査ログ
     auditLogService.logSignup({

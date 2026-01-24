@@ -30,6 +30,14 @@ const cleanup = () => {
 // 5分ごとにクリーンアップ
 setInterval(cleanup, 5 * 60 * 1000)
 
+/**
+ * 開発環境用: レート制限ストアをクリアする関数
+ */
+export const clearRateLimitStore = () => {
+  rateLimitStore.clear()
+  console.log('Rate limit store cleared')
+}
+
 export interface RateLimitOptions {
   windowMs: number // 時間窓（ミリ秒）
   maxRequests: number // 最大リクエスト数
@@ -100,19 +108,26 @@ export const createRateLimiter = (options: RateLimitOptions) => {
 }
 
 /**
- * ログイン用のRate Limiter（5回/15分）
+ * ログイン用のRate Limiter
+ * 開発環境: 20回/15分
+ * 本番環境: 5回/15分
  */
 export const loginRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15分
-  maxRequests: 5,
+  maxRequests: process.env.NODE_ENV === 'production' ? 5 : 20, // 本番: 5回、開発: 20回
   message: 'Too many login attempts, please try again later',
 })
 
 /**
- * サインアップ用のRate Limiter（3回/時間）
+ * サインアップ用のRate Limiter
+ * 開発環境: 10回/15分
+ * 本番環境: 3回/時間
  */
 export const signupRateLimiter = createRateLimiter({
-  windowMs: 60 * 60 * 1000, // 1時間
-  maxRequests: 3,
+  windowMs:
+    process.env.NODE_ENV === 'production'
+      ? 60 * 60 * 1000 // 本番: 1時間
+      : 15 * 60 * 1000, // 開発: 15分
+  maxRequests: process.env.NODE_ENV === 'production' ? 3 : 10, // 本番: 3回、開発: 10回
   message: 'Too many signup attempts, please try again later',
 })

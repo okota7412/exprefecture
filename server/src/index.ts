@@ -2,6 +2,8 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
 
+import { clearRateLimitStore } from './middleware/rate-limit.js'
+import accountGroupRoutes from './routes/account-groups.js'
 import authRoutes from './routes/auth.js'
 import groupRoutes from './routes/groups.js'
 import itemRoutes from './routes/items.js'
@@ -55,8 +57,17 @@ app.use(cookieParser())
 
 // ルート
 app.use('/api/auth', authRoutes)
+app.use('/api/account-groups', accountGroupRoutes)
 app.use('/api/groups', groupRoutes)
 app.use('/api/items', itemRoutes)
+
+// 開発環境用: レート制限をクリアするエンドポイント
+if (process.env.NODE_ENV !== 'production') {
+  app.post('/api/dev/clear-rate-limit', (_req, res) => {
+    clearRateLimitStore()
+    res.json({ message: 'Rate limit store cleared' })
+  })
+}
 
 // ヘルスチェック（データベース接続も確認）
 app.get('/health', async (req, res) => {

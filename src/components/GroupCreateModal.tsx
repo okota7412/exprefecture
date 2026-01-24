@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useState } from 'react'
 
 import { customInstance } from '@/api/client'
+import { useAccountGroup } from '@/contexts/AccountGroupContext'
 import { cn } from '@/lib/utils'
 
 type GroupCreateModalProps = {
@@ -16,6 +17,7 @@ export const GroupCreateModal = ({
   onSuccess,
   open,
 }: GroupCreateModalProps) => {
+  const { currentAccountGroupId } = useAccountGroup()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -30,12 +32,18 @@ export const GroupCreateModal = ({
       return
     }
 
+    if (!currentAccountGroupId) {
+      setError('アカウントグループが選択されていません')
+      return
+    }
+
     setIsLoading(true)
 
     try {
       await customInstance.post('/api/groups', {
         name: name.trim(),
         description: description.trim() || undefined,
+        accountGroupId: currentAccountGroupId,
       })
 
       // 成功時はフォームをリセットしてモーダルを閉じる

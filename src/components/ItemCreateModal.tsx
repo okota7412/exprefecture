@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 import { customInstance } from '@/api/client'
+import { useAccountGroup } from '@/contexts/AccountGroupContext'
 import type { Group } from '@/data/groups'
 import type { ItemStatus, ItemTag } from '@/data/items'
 import { getStatusLabel, getTagLabel } from '@/data/items'
@@ -36,6 +37,7 @@ export const ItemCreateModal = ({
   onSuccess,
   open,
 }: ItemCreateModalProps) => {
+  const { currentAccountGroupId } = useAccountGroup()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [cityName, setCityName] = useState('')
@@ -51,10 +53,16 @@ export const ItemCreateModal = ({
 
   // グループ一覧を取得
   useEffect(() => {
+    if (!currentAccountGroupId) {
+      return
+    }
+
     const fetchGroups = async () => {
       setIsLoadingGroups(true)
       try {
-        const response = await customInstance.get<Group[]>('/api/groups')
+        const response = await customInstance.get<Group[]>('/api/groups', {
+          params: { accountGroupId: currentAccountGroupId },
+        })
         setGroups(response.data)
         // デフォルトグループIDが指定されている場合は選択状態にする
         if (defaultGroupIds.length > 0) {
@@ -67,10 +75,10 @@ export const ItemCreateModal = ({
       }
     }
 
-    if (open) {
+    if (open && currentAccountGroupId) {
       fetchGroups()
     }
-  }, [open, defaultGroupIds])
+  }, [open, defaultGroupIds, currentAccountGroupId])
 
   // モーダルが開かれた時にデフォルトグループIDを設定
   useEffect(() => {
@@ -111,6 +119,12 @@ export const ItemCreateModal = ({
     setIsLoading(true)
 
     try {
+      if (!currentAccountGroupId) {
+        setError('アカウントグループが選択されていません')
+        setIsLoading(false)
+        return
+      }
+
       // アイテムを作成（CSRFトークンはインターセプターで自動設定される）
       await customInstance.post('/api/items', {
         title,
@@ -120,6 +134,7 @@ export const ItemCreateModal = ({
         tags,
         mediaUrl: mediaUrl || undefined,
         groupIds: selectedGroupIds.length > 0 ? selectedGroupIds : undefined,
+        accountGroupId: currentAccountGroupId,
       })
 
       // 成功時はフォームをリセットしてモーダルを閉じる

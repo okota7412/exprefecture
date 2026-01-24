@@ -24,7 +24,20 @@ router.post(
   async (req: AuthRequest, res: Response) => {
     try {
       const validatedData = createItemSchema.parse(req.body)
-      const item = await itemService.createItem(validatedData, req.user!.userId)
+      const accountGroupId =
+        req.body.accountGroupId || (req.query.accountGroupId as string)
+
+      if (!accountGroupId) {
+        return res.status(400).json({
+          message: 'accountGroupId is required',
+        })
+      }
+
+      const item = await itemService.createItem(
+        validatedData,
+        req.user!.userId,
+        accountGroupId
+      )
 
       res.status(201).json(item)
     } catch (error) {
@@ -53,6 +66,14 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
       ? parseInt(req.query.prefectureId as string, 10)
       : undefined
     const groupId = req.query.groupId as string | undefined
+    const accountGroupId = req.query.accountGroupId as string | undefined
+
+    // accountGroupIdが必須
+    if (!accountGroupId) {
+      return res.status(400).json({
+        message: 'accountGroupId is required',
+      })
+    }
 
     // グループIDが指定されている場合はグループで取得
     if (groupId) {
@@ -65,21 +86,48 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
           message: 'Invalid groupId format',
         })
       }
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          `[Items Route] getItemsByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}, userId=${req.user!.userId}`
+        )
+      }
       const items = await itemService.getItemsByGroupId(
         groupId,
-        req.user!.userId
+        req.user!.userId,
+        accountGroupId
       )
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          `[Items Route] getItemsByGroupId result: ${items.length} items`
+        )
+      }
       return res.json(items)
     }
 
     // 都道府県IDが指定されている場合は都道府県で取得（後で絞り込み機能用）
     if (prefectureId && !isNaN(prefectureId)) {
-      const items = await itemService.getItemsByPrefecture(prefectureId)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          `[Items Route] getItemsByPrefecture: prefectureId=${prefectureId}, accountGroupId=${accountGroupId}`
+        )
+      }
+      const items = await itemService.getItemsByPrefecture(
+        prefectureId,
+        accountGroupId
+      )
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          `[Items Route] getItemsByPrefecture result: ${items.length} items`
+        )
+      }
       return res.json(items)
     }
 
     // クエリパラメータがない場合はユーザーの全アイテムを取得
-    const items = await itemService.getItemsByUserId(req.user!.userId)
+    const items = await itemService.getItemsByUserId(
+      req.user!.userId,
+      accountGroupId
+    )
     res.json(items)
   } catch (error) {
     console.error('Get items error:', error)

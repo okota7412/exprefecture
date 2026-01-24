@@ -11,15 +11,18 @@ datasource db {
 }
 
 model User {
-  id           String         @id @default(uuid())
-  email        String         @unique
-  passwordHash String         @map("password_hash")
-  role         String         @default("user")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  refreshTokens RefreshToken[]
-  items        Item[]
-  groups       Group[]
+  id                    String                   @id @default(uuid())
+  email                 String                   @unique
+  passwordHash          String                   @map("password_hash")
+  role                  String                   @default("user")
+  createdAt             DateTime                 @default(now()) @map("created_at")
+  updatedAt             DateTime                 @updatedAt @map("updated_at")
+  refreshTokens         RefreshToken[]
+  items                 Item[]
+  groups                Group[]
+  accountGroupMembers   AccountGroupMember[]
+  sentInvitations       AccountGroupInvitation[] @relation("Inviter")
+  receivedInvitations   AccountGroupInvitation[] @relation("Invitee")
 
   @@map("users")
 }
@@ -39,39 +42,45 @@ model RefreshToken {
 }
 
 model Item {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  prefectureId Int?
-  cityName    String?
-  status      String   @default("not_visited")
-  tags        String   // JSON配列として保存
-  mediaUrl    String?
-  userId      String   @map("user_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  prefectureId  Int?
+  cityName      String?
+  status        String   @default("not_visited")
+  tags          String   // JSON配列として保存
+  mediaUrl      String?
+  userId        String   @map("user_id")
+  accountGroupId String  @map("account_group_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  groups ItemGroup[]
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountGroup AccountGroup @relation(fields: [accountGroupId], references: [id], onDelete: Cascade)
+  groups       ItemGroup[]
 
   @@map("items")
   @@index([prefectureId])
   @@index([userId])
+  @@index([accountGroupId])
 }
 
 model Group {
-  id          String      @id @default(uuid())
-  name        String
-  description String?
-  userId      String      @map("user_id")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id            String      @id @default(uuid())
+  name          String
+  description   String?
+  userId        String      @map("user_id")
+  accountGroupId String     @map("account_group_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items ItemGroup[]
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountGroup AccountGroup @relation(fields: [accountGroupId], references: [id], onDelete: Cascade)
+  items        ItemGroup[]
 
   @@map("groups")
   @@index([userId])
+  @@index([accountGroupId])
 }
 
 model ItemGroup {
@@ -87,4 +96,62 @@ model ItemGroup {
   @@unique([itemId, groupId])
   @@index([itemId])
   @@index([groupId])
+}
+
+// アカウントグループ
+model AccountGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        String   @default("shared") // "personal", "shared"
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members     AccountGroupMember[]
+  invitations AccountGroupInvitation[]
+  items       Item[]
+  groups      Group[]
+
+  @@map("account_groups")
+  @@index([createdBy])
+  @@index([type])
+}
+
+// アカウントグループメンバー（多対多）
+model AccountGroupMember {
+  id            String   @id @default(uuid())
+  accountGroupId String  @map("account_group_id")
+  userId        String   @map("user_id")
+  role          String   @default("member") // "owner", "admin", "member"
+  joinedAt      DateTime @default(now()) @map("joined_at")
+
+  accountGroup AccountGroup @relation(fields: [accountGroupId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account_group_members")
+  @@unique([accountGroupId, userId])
+  @@index([accountGroupId])
+  @@index([userId])
+}
+
+// アカウントグループ招待
+model AccountGroupInvitation {
+  id            String   @id @default(uuid())
+  accountGroupId String  @map("account_group_id")
+  inviterId     String   @map("inviter_id")
+  inviteeId     String   @map("invitee_id")
+  status        String   @default("pending") // "pending", "accepted", "rejected", "expired"
+  expiresAt     DateTime? @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  accountGroup AccountGroup @relation(fields: [accountGroupId], references: [id], onDelete: Cascade)
+  inviter      User         @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee      User         @relation("Invitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@map("account_group_invitations")
+  @@index([accountGroupId])
+  @@index([inviteeId])
+  @@index([status])
 }

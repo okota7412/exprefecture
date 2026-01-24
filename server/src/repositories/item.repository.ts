@@ -19,18 +19,30 @@ export interface Item {
 }
 
 export interface IItemRepository {
-  create(data: CreateItemDto & { userId: string }): Promise<Item>
-  findByPrefectureId(prefectureId: number): Promise<Item[]>
-  findByGroupId(groupId: string): Promise<Item[]>
+  create(
+    data: CreateItemDto & { userId: string; accountGroupId: string }
+  ): Promise<Item>
+  findByPrefectureId(
+    prefectureId: number,
+    accountGroupId?: string
+  ): Promise<Item[]>
+  findByGroupId(groupId: string, accountGroupId?: string): Promise<Item[]>
   findById(id: string): Promise<Item | null>
-  findByUserId(userId: string): Promise<Item[]>
+  findByUserId(userId: string, accountGroupId?: string): Promise<Item[]>
   delete(id: string): Promise<void>
   deleteMany(ids: string[]): Promise<number>
   getGroupIdsByItemId(itemId: string): Promise<string[]>
 }
 
 export class ItemRepository implements IItemRepository {
-  async create(data: CreateItemDto & { userId: string }): Promise<Item> {
+  async create(
+    data: CreateItemDto & { userId: string; accountGroupId: string }
+  ): Promise<Item> {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemRepository] create: userId=${data.userId}, accountGroupId=${data.accountGroupId}, title=${data.title}`
+      )
+    }
     // グループ関連を含めて作成
     const item = await prisma.$transaction(async tx => {
       const createdItem = await tx.item.create({
@@ -43,8 +55,14 @@ export class ItemRepository implements IItemRepository {
           tags: JSON.stringify(data.tags),
           mediaUrl: data.mediaUrl,
           userId: data.userId,
+          accountGroupId: data.accountGroupId,
         },
       })
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          `[ItemRepository] create result: itemId=${createdItem.id}, accountGroupId=${createdItem.accountGroupId}`
+        )
+      }
 
       // グループとの関連を作成（SQLiteではskipDuplicatesが使えないため、個別に作成）
       if (data.groupIds && data.groupIds.length > 0) {
@@ -86,16 +104,40 @@ export class ItemRepository implements IItemRepository {
     return item
   }
 
-  async findByPrefectureId(prefectureId: number): Promise<Item[]> {
+  async findByPrefectureId(
+    prefectureId: number,
+    accountGroupId?: string
+  ): Promise<Item[]> {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemRepository] findByPrefectureId: prefectureId=${prefectureId}, accountGroupId=${accountGroupId}`
+      )
+    }
     const items = await prisma.item.findMany({
-      where: { prefectureId },
+      where: {
+        prefectureId,
+        ...(accountGroupId && { accountGroupId }),
+      },
       orderBy: { createdAt: 'desc' },
     })
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemRepository] findByPrefectureId: found ${items.length} items`
+      )
+    }
 
     return items
   }
 
-  async findByGroupId(groupId: string): Promise<Item[]> {
+  async findByGroupId(
+    groupId: string,
+    accountGroupId?: string
+  ): Promise<Item[]> {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemRepository] findByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}`
+      )
+    }
     const itemGroups = await prisma.itemGroup.findMany({
       where: { groupId },
       include: {
@@ -103,11 +145,40 @@ export class ItemRepository implements IItemRepository {
       },
       orderBy: { createdAt: 'desc' },
     })
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemRepository] findByGroupId: found ${itemGroups.length} itemGroups`
+      )
+    }
 
-    // アイテムをソート
-    return itemGroups
+    // アイテムをフィルタリング（nullを除外、accountGroupIdでフィルタリング）
+    let items = itemGroups
       .map(ig => ig.item)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[ItemRepository] findByGroupId: after null filter: ${items.length} items`
+      )
+    }
+
+    // accountGroupIdでフィルタリング
+    if (accountGroupId) {
+      const beforeFilterCount = items.length
+      items = items.filter(item => item.accountGroupId === accountGroupId)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(
+          `[ItemRepository] findByGroupId: after accountGroupId filter: ${items.length} items (was ${beforeFilterCount})`
+        )
+        items.forEach(item => {
+          console.log(
+            `  - Item: ${item.id}, accountGroupId: ${item.accountGroupId}, matches: ${item.accountGroupId === accountGroupId}`
+          )
+        })
+      }
+    }
+
+    // ソート
+    return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   }
 
   async findById(id: string): Promise<Item | null> {
@@ -127,9 +198,12 @@ export class ItemRepository implements IItemRepository {
     return itemGroups.map(ig => ig.groupId)
   }
 
-  async findByUserId(userId: string): Promise<Item[]> {
+  async findByUserId(userId: string, accountGroupId?: string): Promise<Item[]> {
     const items = await prisma.item.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(accountGroupId && { accountGroupId }),
+      },
       orderBy: { createdAt: 'desc' },
     })
 

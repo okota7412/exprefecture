@@ -19,33 +19,56 @@ export class GroupError extends Error {
 }
 
 export interface IGroupService {
-  createGroup(dto: CreateGroupDto, userId: string): Promise<GroupResponse>
-  getGroupsByUserId(userId: string): Promise<GroupResponse[]>
-  getGroupById(id: string, userId: string): Promise<GroupResponse>
+  createGroup(
+    dto: CreateGroupDto,
+    userId: string,
+    accountGroupId: string
+  ): Promise<GroupResponse>
+  getGroupsByUserId(
+    userId: string,
+    accountGroupId?: string
+  ): Promise<GroupResponse[]>
+  getGroupById(
+    id: string,
+    userId: string,
+    accountGroupId?: string
+  ): Promise<GroupResponse>
   updateGroup(
     id: string,
     dto: UpdateGroupDto,
-    userId: string
+    userId: string,
+    accountGroupId?: string
   ): Promise<GroupResponse>
-  deleteGroup(id: string, userId: string): Promise<void>
+  deleteGroup(
+    id: string,
+    userId: string,
+    accountGroupId?: string
+  ): Promise<void>
   getGroupsByItemId(itemId: string, userId: string): Promise<GroupResponse[]>
 }
 
 export class GroupService implements IGroupService {
   async createGroup(
     dto: CreateGroupDto,
-    userId: string
+    userId: string,
+    accountGroupId: string
   ): Promise<GroupResponse> {
     const group = await groupRepository.create({
       ...dto,
       userId,
+      accountGroupId,
     })
 
     return this.mapToResponse(group)
   }
 
-  async getGroupsByUserId(userId: string): Promise<GroupResponse[]> {
-    const groups = await groupRepository.findByUserId(userId)
+  async getGroupsByUserId(
+    userId: string,
+    accountGroupId?: string
+  ): Promise<GroupResponse[]> {
+    // accountGroupIdが指定されている場合は、アカウントグループの全メンバーがアクセスできる
+    // accountGroupIdが指定されていない場合は、ユーザーが作成したグループのみを返す
+    const groups = await groupRepository.findByUserId(userId, accountGroupId)
 
     // 各グループのアイテム数を取得
     const groupsWithCount = await Promise.all(
@@ -60,13 +83,27 @@ export class GroupService implements IGroupService {
     )
   }
 
-  async getGroupById(id: string, userId: string): Promise<GroupResponse> {
+  async getGroupById(
+    id: string,
+    userId: string,
+    accountGroupId?: string
+  ): Promise<GroupResponse> {
     const group = await groupRepository.findById(id)
     if (!group) {
       throw new GroupError('Group not found', 'GROUP_NOT_FOUND')
     }
 
-    if (group.userId !== userId) {
+    // accountGroupIdが指定されている場合は、グループのaccountGroupIdと一致するかチェック
+    // これにより、アカウントグループのメンバー全員がアクセスできる
+    if (accountGroupId && group.accountGroupId !== accountGroupId) {
+      throw new GroupError(
+        'Forbidden: Group does not belong to the specified account group',
+        'FORBIDDEN'
+      )
+    }
+
+    // accountGroupIdが指定されていない場合は、作成者のみがアクセスできる（後方互換性のため）
+    if (!accountGroupId && group.userId !== userId) {
       throw new GroupError(
         'Forbidden: You can only access your own groups',
         'FORBIDDEN'
@@ -80,13 +117,24 @@ export class GroupService implements IGroupService {
   async updateGroup(
     id: string,
     dto: UpdateGroupDto,
-    userId: string
+    userId: string,
+    accountGroupId?: string
   ): Promise<GroupResponse> {
     const group = await groupRepository.findById(id)
     if (!group) {
       throw new GroupError('Group not found', 'GROUP_NOT_FOUND')
     }
 
+    // accountGroupIdが指定されている場合は、グループのaccountGroupIdと一致するかチェック
+    // ただし、編集は作成者のみが可能
+    if (accountGroupId && group.accountGroupId !== accountGroupId) {
+      throw new GroupError(
+        'Forbidden: Group does not belong to the specified account group',
+        'FORBIDDEN'
+      )
+    }
+
+    // 編集は作成者のみが可能
     if (group.userId !== userId) {
       throw new GroupError(
         'Forbidden: You can only update your own groups',
@@ -99,12 +147,26 @@ export class GroupService implements IGroupService {
     return this.mapToResponse(updatedGroup, itemCount)
   }
 
-  async deleteGroup(id: string, userId: string): Promise<void> {
+  async deleteGroup(
+    id: string,
+    userId: string,
+    accountGroupId?: string
+  ): Promise<void> {
     const group = await groupRepository.findById(id)
     if (!group) {
       throw new GroupError('Group not found', 'GROUP_NOT_FOUND')
     }
 
+    // accountGroupIdが指定されている場合は、グループのaccountGroupIdと一致するかチェック
+    // ただし、削除は作成者のみが可能
+    if (accountGroupId && group.accountGroupId !== accountGroupId) {
+      throw new GroupError(
+        'Forbidden: Group does not belong to the specified account group',
+        'FORBIDDEN'
+      )
+    }
+
+    // 削除は作成者のみが可能
     if (group.userId !== userId) {
       throw new GroupError(
         'Forbidden: You can only delete your own groups',

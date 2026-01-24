@@ -1,8 +1,9 @@
 import { Plus, Edit2, Trash2 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { customInstance } from '@/api/client'
+import { useAccountGroup } from '@/contexts/AccountGroupContext'
 import type { Group } from '@/data/groups'
 
 import { GroupCreateModal } from './GroupCreateModal'
@@ -15,6 +16,7 @@ import { SelectionGrid } from './shared/SelectionGrid'
 
 export const GroupHome = () => {
   const navigate = useNavigate()
+  const { currentAccountGroupId } = useAccountGroup()
   const [searchQuery, setSearchQuery] = useState('')
   const [groups, setGroups] = useState<Group[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -26,11 +28,17 @@ export const GroupHome = () => {
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
+    if (!currentAccountGroupId) {
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     try {
-      const response = await customInstance.get<Group[]>('/api/groups')
+      const response = await customInstance.get<Group[]>('/api/groups', {
+        params: { accountGroupId: currentAccountGroupId },
+      })
       setGroups(response.data)
     } catch (err) {
       console.error('Failed to fetch groups:', err)
@@ -39,11 +47,11 @@ export const GroupHome = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentAccountGroupId])
 
   useEffect(() => {
     fetchGroups()
-  }, [])
+  }, [fetchGroups])
 
   const handleGroupClick = (groupId: string | number) => {
     navigate(`/groups/${groupId}`)
