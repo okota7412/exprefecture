@@ -2,7 +2,9 @@
  * アイテムサービス（ビジネスロジック層）
  */
 import type { CreateItemDto, ItemResponse } from '../dto/item.dto.js'
+import type { Item } from '../repositories/item.repository.js'
 import { itemRepository } from '../repositories/item.repository.js'
+import { debug } from '../utils/logger.js'
 
 export class ItemError extends Error {
   constructor(
@@ -44,21 +46,19 @@ export class ItemService implements IItemService {
     userId: string,
     accountGroupId: string
   ): Promise<ItemResponse> {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemService] createItem: userId=${userId}, accountGroupId=${accountGroupId}, prefectureId=${dto.prefectureId}`
-      )
-    }
+    debug(
+      `createItem: userId=${userId}, accountGroupId=${accountGroupId}, prefectureId=${dto.prefectureId}`,
+      'ItemService'
+    )
     const item = await itemRepository.create({
       ...dto,
       userId,
       accountGroupId,
     })
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemService] createItem result: itemId=${item.id}, accountGroupId=${item.accountGroupId}`
-      )
-    }
+    debug(
+      `createItem result: itemId=${item.id}, accountGroupId=${item.accountGroupId}`,
+      'ItemService'
+    )
 
     return this.mapToResponse(item)
   }
@@ -67,20 +67,15 @@ export class ItemService implements IItemService {
     prefectureId: number,
     accountGroupId?: string
   ): Promise<ItemResponse[]> {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemService] getItemsByPrefecture: prefectureId=${prefectureId}, accountGroupId=${accountGroupId}`
-      )
-    }
+    debug(
+      `getItemsByPrefecture: prefectureId=${prefectureId}, accountGroupId=${accountGroupId}`,
+      'ItemService'
+    )
     const items = await itemRepository.findByPrefectureId(
       prefectureId,
       accountGroupId
     )
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemService] getItemsByPrefecture: found ${items.length} items`
-      )
-    }
+    debug(`getItemsByPrefecture: found ${items.length} items`, 'ItemService')
     const itemsWithGroups = await Promise.all(
       items.map(async item => {
         const groupIds = await itemRepository.getGroupIdsByItemId(item.id)
@@ -95,24 +90,14 @@ export class ItemService implements IItemService {
     userId: string,
     accountGroupId?: string
   ): Promise<ItemResponse[]> {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemService] getItemsByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}, userId=${userId}`
-      )
-    }
+    debug(
+      `getItemsByGroupId: groupId=${groupId}, accountGroupId=${accountGroupId}, userId=${userId}`,
+      'ItemService'
+    )
     // accountGroupIdでフィルタリングされたアイテムを取得
     // アカウントグループのメンバー全員がアクセスできるように、userIdによるフィルタリングは行わない
     const items = await itemRepository.findByGroupId(groupId, accountGroupId)
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[ItemService] getItemsByGroupId: found ${items.length} items`
-      )
-      items.forEach(item => {
-        console.log(
-          `  - Item: ${item.id}, title: ${item.title}, accountGroupId: ${item.accountGroupId}, userId: ${item.userId}, matches filter: ${item.accountGroupId === accountGroupId}`
-        )
-      })
-    }
+    debug(`getItemsByGroupId: found ${items.length} items`, 'ItemService')
 
     const itemsWithGroups = await Promise.all(
       items.map(async item => {
@@ -163,6 +148,11 @@ export class ItemService implements IItemService {
   }
 
   async deleteItems(ids: string[], userId: string): Promise<number> {
+    // 空配列チェック
+    if (!ids || ids.length === 0) {
+      throw new ItemError('No items to delete', 'VALIDATION_ERROR')
+    }
+
     // 重複を除去
     const uniqueIds = [...new Set(ids)]
 
@@ -210,22 +200,22 @@ export class ItemService implements IItemService {
     return deletedCount
   }
 
-  private mapToResponse(
-    item: {
-      id: string
-      title: string
-      description: string | null
-      prefectureId: number | null
-      cityName: string | null
-      status: string
-      tags: string
-      mediaUrl: string | null
-      userId: string
-      createdAt: Date
-      updatedAt: Date
-    },
-    groupIds?: string[]
-  ): ItemResponse {
+  private mapToResponse(item: Item, groupIds?: string[]): ItemResponse {
+    // JSON.parseのエラーハンドリング
+    let tags: string[]
+    try {
+      const parsed = JSON.parse(item.tags)
+      if (Array.isArray(parsed)) {
+        tags = parsed
+      } else {
+        // 配列でない場合は空配列にフォールバック
+        tags = []
+      }
+    } catch {
+      // JSON解析エラーの場合は空配列にフォールバック
+      tags = []
+    }
+
     return {
       id: item.id,
       title: item.title,
@@ -233,7 +223,7 @@ export class ItemService implements IItemService {
       prefectureId: item.prefectureId ?? undefined,
       cityName: item.cityName ?? undefined,
       status: item.status,
-      tags: JSON.parse(item.tags) as string[],
+      tags,
       mediaUrl: item.mediaUrl ?? undefined,
       userId: item.userId,
       groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined,

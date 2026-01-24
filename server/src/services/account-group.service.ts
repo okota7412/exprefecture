@@ -12,6 +12,7 @@ import type {
 } from '../dto/account-group.dto.js'
 import { accountGroupRepository } from '../repositories/account-group.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
+import { debug } from '../utils/logger.js'
 
 export class AccountGroupError extends Error {
   constructor(
@@ -101,11 +102,10 @@ export class AccountGroupService implements IAccountGroupService {
     const memberGroups = await accountGroupRepository.findByMemberId(userId)
 
     // デバッグログ（開発環境のみ）
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[AccountGroupService] User ${userId}:`)
-      console.log(`  Created groups: ${createdGroups.length}`)
-      console.log(`  Member groups: ${memberGroups.length}`)
-    }
+    debug(
+      `User ${userId}: Created groups: ${createdGroups.length}, Member groups: ${memberGroups.length}`,
+      'AccountGroupService'
+    )
 
     // 重複を除去（Setを使用）
     const allGroups = new Map<string, AccountGroupResponse>()
@@ -418,16 +418,14 @@ export class AccountGroupService implements IAccountGroupService {
       expiresAt
     )
 
-    // デバッグログ（開発環境のみ）
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[AccountGroupService] Invitation created:`)
-      console.log(`  AccountGroup: ${accountGroup.name} (${accountGroupId})`)
-      console.log(`  Inviter: ${inviter?.email || userId}`)
-      console.log(`  Invitee: ${dto.inviteeEmail} (${invitee.id})`)
-      console.log(`  Invitation ID: ${invitation.id}`)
-    }
-
+    // 招待者情報を取得
     const inviter = await userRepository.findById(userId)
+
+    // デバッグログ（開発環境のみ）
+    debug(
+      `Invitation created: AccountGroup: ${accountGroup.name} (${accountGroupId}), Inviter: ${inviter?.email || userId}, Invitee: ${dto.inviteeEmail} (${invitee.id}), Invitation ID: ${invitation.id}`,
+      'AccountGroupService'
+    )
     return {
       id: invitation.id,
       accountGroupId: invitation.accountGroupId,
@@ -457,15 +455,10 @@ export class AccountGroupService implements IAccountGroupService {
     )
 
     // デバッグログ（開発環境のみ）
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[AccountGroupService] getInvitationsByInvitee for user ${userId}:`
-      )
-      console.log(`  Found ${invitations.length} invitations`)
-      invitations.forEach(inv => {
-        console.log(`    - ${inv.accountGroup.name} (status: ${inv.status})`)
-      })
-    }
+    debug(
+      `getInvitationsByInvitee for user ${userId}: Found ${invitations.length} invitations`,
+      'AccountGroupService'
+    )
 
     const inviterIds = new Set(invitations.map(inv => inv.inviterId))
     const inviters = await Promise.all(
