@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
-import ikottoIcon from '@/assets/ikotto_icon.png'
+import ikottoStringIcon from '@/assets/ikotto_stringIcon.png'
 import { useAuth } from '@/contexts/AuthContext'
 
 import { AccountGroupSelector } from './AccountGroupSelector'
@@ -30,44 +30,40 @@ export const Header = () => {
 
   return (
     <header
-      className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md"
+      className="bg-white border-b border-gray-100 shadow-sm"
       role="banner"
     >
-      <div className="flex items-center justify-between py-3 md:py-4 pr-4">
-        {/* ロゴアイコン（左上） */}
+      <div className="flex items-center justify-between py-3 md:py-4 px-4 md:px-6">
+        {/* ロゴ（文字アイコンのみ・ヘッダーの主役） */}
         <Link
           to="/"
-          className="flex items-center hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 rounded pl-4"
-          aria-label="Ikotto ホーム"
+          className="flex items-center hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-lg -ml-1"
+          aria-label="いこっと ホーム"
         >
           <img
-            src={ikottoIcon}
-            alt="Ikotto"
-            className="w-8 h-8 md:w-10 md:h-10 object-contain bg-white/20 rounded-lg p-1"
+            src={ikottoStringIcon}
+            alt="いこっと"
+            className="h-12 md:h-14 w-auto object-contain object-left"
           />
         </Link>
 
         {/* アカウント名とログアウトボタン（右上） */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {!isLoginPage && !isSignupPage && user && (
             <>
-              {/* 通知ボタン */}
               <NotificationButton />
-              {/* アカウントグループ切り替え */}
               <AccountGroupSelector />
-              {/* アカウント名 */}
-              <div className="text-sm md:text-base font-medium truncate max-w-[200px] md:max-w-none">
+              <div className="text-sm md:text-base font-medium text-gray-700 truncate max-w-[160px] md:max-w-[200px] hidden sm:block">
                 {user.email || `ユーザーID: ${user.userId}`}
               </div>
-              {/* ログアウトボタン */}
               <button
                 onClick={handleLogout}
                 type="button"
-                className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600"
+                className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 text-gray-700 hover:text-teal-700 hover:bg-teal-50 border border-gray-200 hover:border-teal-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                 aria-label="ログアウト"
               >
                 <LogOut className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
-                <span className="hidden sm:inline text-sm md:text-base">
+                <span className="hidden sm:inline text-sm md:text-base font-medium">
                   ログアウト
                 </span>
               </button>

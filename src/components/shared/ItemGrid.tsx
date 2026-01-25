@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-import { Item } from '@/data/items'
+import type { Item } from '@/data/items'
 
 import { ItemCard } from './ItemCard'
 
@@ -78,8 +78,8 @@ export const ItemGrid = ({
   return (
     <>
       {isDeleteMode && selectedItems.size > 0 && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-          <span className="text-sm font-medium text-blue-900">
+        <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg flex items-center justify-between">
+          <span className="text-sm font-medium text-teal-900">
             {selectedItems.size}件のアイテムが選択されています
           </span>
           {onBulkDelete && (

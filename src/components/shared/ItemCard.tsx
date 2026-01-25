@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react'
 
-import { Item, getStatusLabel, getTagLabel } from '@/data/items'
+import type { Item } from '@/data/items'
+import { getStatusLabel, getTagLabel } from '@/data/items'
 
 type ItemCardProps = {
   item: Item
@@ -21,15 +22,15 @@ const getStatusColor = (status: Item['status']) => {
       }
     case 'visited':
       return {
-        bg: 'bg-blue-100',
-        text: 'text-blue-700',
-        border: 'border-blue-300',
+        bg: 'bg-teal-100',
+        text: 'text-teal-700',
+        border: 'border-teal-300',
       }
     case 'want_to_visit_again':
       return {
-        bg: 'bg-purple-100',
-        text: 'text-purple-700',
-        border: 'border-purple-300',
+        bg: 'bg-emerald-100',
+        text: 'text-emerald-700',
+        border: 'border-emerald-300',
       }
     default:
       return {
@@ -90,9 +91,9 @@ export const ItemCard = ({
       className={`group relative w-full h-full bg-white border rounded-xl p-4 md:p-5 text-left transition-all duration-200 ${
         isDeleteMode
           ? isSelected
-            ? 'border-blue-500 bg-blue-50/50 shadow-md'
+            ? 'border-teal-500 bg-teal-50/50 shadow-md'
             : 'border-gray-200/60 shadow-[0_2px_4px_rgba(0,0,0,0.06)]'
-          : 'border-gray-200/60 shadow-[0_2px_4px_rgba(0,0,0,0.06)] hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.12)] hover:border-gray-300'
+          : 'border-gray-200/60 shadow-[0_2px_4px_rgba(0,0,0,0.06)] hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.12)] hover:border-teal-200'
       }`}
     >
       {/* 削除モード時のチェックボックス */}
@@ -107,7 +108,7 @@ export const ItemCard = ({
                 onSelectChange(item.id, e.target.checked)
               }
             }}
-            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
+            className="w-5 h-5 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 cursor-pointer"
             aria-label={`${item.title}を選択`}
           />
         </div>
@@ -128,7 +129,7 @@ export const ItemCard = ({
       <button
         type="button"
         onClick={handleCardClick}
-        className="w-full h-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 active:scale-[0.98]"
+        className="w-full h-full focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:ring-offset-2 active:scale-[0.98]"
         aria-label={
           isDeleteMode ? `${item.title}を選択` : `${item.title}を開く`
         }

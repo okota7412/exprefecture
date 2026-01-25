@@ -121,7 +121,7 @@ export const NotificationButton = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         type="button"
-        className="relative flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600"
+        className="relative flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 text-gray-700 hover:text-teal-700 hover:bg-teal-50 border border-gray-200 hover:border-teal-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
         aria-label="通知"
         aria-expanded={isOpen}
       >
@@ -130,7 +130,7 @@ export const NotificationButton = () => {
           通知
         </span>
         {pendingCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+          <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
             {pendingCount > 9 ? '9+' : pendingCount}
           </span>
         )}
@@ -138,11 +138,11 @@ export const NotificationButton = () => {
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[600px] overflow-y-auto">
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="p-4 border-b border-gray-200 bg-teal-50/50">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 text-lg">招待通知</h3>
               {pendingCount > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">
+                <span className="bg-teal-500 text-white text-xs font-bold rounded-full px-2 py-1">
                   {pendingCount}件
                 </span>
               )}
@@ -175,8 +175,8 @@ export const NotificationButton = () => {
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-1">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Mail className="w-5 h-5 text-blue-600" />
+                        <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                          <Mail className="w-5 h-5 text-teal-600" />
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -206,7 +206,7 @@ export const NotificationButton = () => {
                             }
                             disabled={processingId === invitation.id}
                             className={cn(
-                              'flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm font-medium'
+                              'flex-1 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm font-medium'
                             )}
                           >
                             {processingId === invitation.id ? (

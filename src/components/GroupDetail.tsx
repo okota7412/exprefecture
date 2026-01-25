@@ -71,10 +71,9 @@ export const GroupDetail = () => {
       )
 
       if (response.data.length > 0 && process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         console.log(
           '[GroupDetail] fetchItems items:',
-          response.data.map((item: any) => ({
+          response.data.map((item: Record<string, unknown>) => ({
             id: item.id,
             title: item.title,
             accountGroupId: item.accountGroupId,
@@ -137,7 +136,7 @@ export const GroupDetail = () => {
             </h1>
             <button
               onClick={() => navigate('/')}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-teal-600 hover:text-teal-700 font-medium"
             >
               ホームに戻る
             </button>
@@ -158,7 +157,7 @@ export const GroupDetail = () => {
             </h1>
             <button
               onClick={() => navigate('/')}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-teal-600 hover:text-teal-700 font-medium"
             >
               ホームに戻る
             </button>
@@ -264,7 +263,7 @@ export const GroupDetail = () => {
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
                 aria-label="新しいアイテムを作成"
               >
                 <Plus className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
@@ -313,7 +312,7 @@ export const GroupDetail = () => {
               <button
                 type="button"
                 onClick={handleCreateSuccess}
-                className="text-blue-600 hover:text-blue-700 text-sm md:text-base"
+                className="text-teal-600 hover:text-teal-700 text-sm md:text-base"
               >
                 再読み込み
               </button>

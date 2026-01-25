@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import { getRegionById, getPrefecturesByRegion } from '@/data/regions'
@@ -24,8 +24,14 @@ export const PrefectureHome = () => {
     }>
   >([])
 
-  const region = regionId ? getRegionById(regionId) : null
-  const prefectures = regionId ? getPrefecturesByRegion(regionId) : []
+  const region = useMemo(
+    () => (regionId ? getRegionById(regionId) : null),
+    [regionId]
+  )
+  const prefectures = useMemo(
+    () => (regionId ? getPrefecturesByRegion(regionId) : []),
+    [regionId]
+  )
 
   // APIからアイテム数を取得
   useEffect(() => {
@@ -74,7 +80,7 @@ export const PrefectureHome = () => {
             </h1>
             <button
               onClick={() => navigate('/')}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-teal-600 hover:text-teal-700 font-medium"
             >
               ホームに戻る
             </button>
@@ -95,7 +101,7 @@ export const PrefectureHome = () => {
             </h1>
             <button
               onClick={() => navigate('/')}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-teal-600 hover:text-teal-700 font-medium"
             >
               ホームに戻る
             </button>
