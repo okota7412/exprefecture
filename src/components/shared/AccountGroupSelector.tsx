@@ -131,7 +131,7 @@ export const AccountGroupSelector = () => {
 
   if (isLoading || accountGroups.length === 0) {
     return (
-      <div className="px-3 py-2 bg-white/20 rounded-lg">
+      <div className="px-3 py-2 text-gray-600 border border-gray-200 rounded-lg bg-gray-50">
         <span className="text-sm">
           {isLoading ? '読み込み中...' : 'グループなし'}
         </span>
@@ -144,7 +144,7 @@ export const AccountGroupSelector = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         type="button"
-        className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600"
+        className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 text-gray-700 hover:text-teal-700 hover:bg-teal-50 border border-gray-200 hover:border-teal-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
         aria-label="アカウントグループを選択"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
@@ -173,7 +173,7 @@ export const AccountGroupSelector = () => {
               setIsCreateModalOpen(true)
             }}
             type="button"
-            className="w-full text-left px-4 py-3 border-b border-gray-200 hover:bg-blue-50 transition-colors text-blue-600 font-medium"
+            className="w-full text-left px-4 py-3 border-b border-gray-200 hover:bg-teal-50 transition-colors text-teal-600 font-medium"
           >
             <div className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
@@ -191,7 +191,7 @@ export const AccountGroupSelector = () => {
                 key={accountGroup.id}
                 className={`w-full px-4 py-3 hover:bg-gray-100 transition-colors ${
                   currentAccountGroupId === accountGroup.id
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'bg-teal-50 text-teal-700'
                     : 'text-gray-700'
                 }`}
               >
@@ -221,7 +221,7 @@ export const AccountGroupSelector = () => {
                   </button>
                   <div className="flex items-center gap-2">
                     {currentAccountGroupId === accountGroup.id && (
-                      <div className="text-blue-600">✓</div>
+                      <div className="text-teal-600">✓</div>
                     )}
                     {canLeave(accountGroup) && (
                       <button

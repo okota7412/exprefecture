@@ -80,7 +80,7 @@ export const SignupPage = () => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="example@email.com"
                 />
               </div>
@@ -98,7 +98,7 @@ export const SignupPage = () => {
                   onChange={e => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="8文字以上"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -119,7 +119,7 @@ export const SignupPage = () => {
                   onChange={e => setConfirmPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="パスワードを再入力"
                 />
               </div>
@@ -131,7 +131,7 @@ export const SignupPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? '登録中...' : '新規登録'}
               </button>
@@ -141,7 +141,7 @@ export const SignupPage = () => {
                 既にアカウントをお持ちの方は{' '}
                 <Link
                   to="/login"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-teal-600 hover:text-teal-700 font-medium"
                 >
                   ログイン
                 </Link>

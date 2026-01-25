@@ -215,7 +215,7 @@ export const AccountGroupCreateModal = ({
                 onChange={e => setName(e.target.value)}
                 required
                 maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 placeholder="例: 家族旅行"
               />
             </div>
@@ -233,7 +233,7 @@ export const AccountGroupCreateModal = ({
                 onChange={e => setDescription(e.target.value)}
                 maxLength={500}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
                 placeholder="アカウントグループの説明を入力してください（任意）"
               />
             </div>
@@ -259,7 +259,7 @@ export const AccountGroupCreateModal = ({
                       }
                     }}
                     placeholder="メールアドレスを入力"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     disabled={isLoading || isAddingInvitation}
                   />
                   <button
@@ -269,7 +269,7 @@ export const AccountGroupCreateModal = ({
                       isLoading || isAddingInvitation || !inviteeEmail.trim()
                     }
                     className={cn(
-                      'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2'
+                      'px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2'
                     )}
                   >
                     <Plus className="w-4 h-4" />
@@ -310,7 +310,7 @@ export const AccountGroupCreateModal = ({
               </p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md text-sm">
+            <div className="bg-teal-50 border border-teal-200 text-teal-800 px-4 py-3 rounded-md text-sm">
               <p className="font-medium mb-1">アカウントグループについて</p>
               <p>
                 アカウントグループを作成すると、メンバーを招待して一緒に旅行計画を共有できます。
@@ -338,7 +338,7 @@ export const AccountGroupCreateModal = ({
                 type="submit"
                 disabled={isLoading || !name.trim()}
                 className={cn(
-                  'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+                  'px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
                 )}
               >
                 {isLoading ? '作成中...' : '作成'}

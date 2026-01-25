@@ -105,7 +105,7 @@ export const GroupEditModal = ({
                 onChange={e => setName(e.target.value)}
                 required
                 maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 placeholder="例: 関西旅行"
               />
             </div>
@@ -123,7 +123,7 @@ export const GroupEditModal = ({
                 onChange={e => setDescription(e.target.value)}
                 maxLength={500}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
                 placeholder="グループの説明を入力してください（任意）"
               />
             </div>
@@ -149,7 +149,7 @@ export const GroupEditModal = ({
                 type="submit"
                 disabled={isLoading || !name.trim()}
                 className={cn(
-                  'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+                  'px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
                 )}
               >
                 {isLoading ? '更新中...' : '更新'}

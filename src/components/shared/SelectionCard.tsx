@@ -34,7 +34,7 @@ export const SelectionCard = ({
     <button
       type="button"
       onClick={() => onClick(id)}
-      className={`group relative w-full h-full ${colors.bg} ${colors.border} rounded-xl border p-4 md:p-5 lg:p-6 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 active:scale-[0.98] hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.12)] ${
+      className={`group relative w-full h-full ${colors.bg} ${colors.border} rounded-xl border p-4 md:p-5 lg:p-6 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:ring-offset-2 active:scale-[0.98] hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.12)] ${
         colors.bgHover === 'bg-blue-50'
           ? 'hover:bg-blue-50'
           : colors.bgHover === 'bg-green-50'

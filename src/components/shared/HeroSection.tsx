@@ -9,7 +9,7 @@ export const HeroSection = ({
 }: HeroSectionProps) => {
   return (
     <div className="text-center mb-4 md:mb-5">
-      <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-950 mb-1.5 md:mb-2 leading-tight">
+      <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold mb-1.5 md:mb-2 leading-tight bg-gradient-to-r from-gray-900 via-teal-800 to-gray-900 bg-clip-text text-transparent">
         {title}
       </h1>
       {description && (

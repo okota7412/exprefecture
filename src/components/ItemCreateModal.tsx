@@ -13,6 +13,7 @@ type ItemCreateModalProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultGroupIds?: string[]
+  prefectureId?: number
   onSuccess: () => void
 }
 
@@ -206,7 +207,7 @@ export const ItemCreateModal = ({
                 onChange={e => setTitle(e.target.value)}
                 required
                 maxLength={200}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 placeholder="例: 東京タワー"
               />
             </div>
@@ -224,7 +225,7 @@ export const ItemCreateModal = ({
                 onChange={e => setDescription(e.target.value)}
                 maxLength={1000}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
                 placeholder="アイテムの説明を入力してください"
               />
             </div>
@@ -242,7 +243,7 @@ export const ItemCreateModal = ({
                 value={cityName}
                 onChange={e => setCityName(e.target.value)}
                 maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 placeholder="例: 港区"
               />
             </div>
@@ -268,7 +269,7 @@ export const ItemCreateModal = ({
                         type="checkbox"
                         checked={selectedGroupIds.includes(group.id)}
                         onChange={() => handleGroupToggle(group.id)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                       />
                       <span className="text-sm text-gray-700">
                         {group.name}
@@ -297,7 +298,7 @@ export const ItemCreateModal = ({
                     className={cn(
                       'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                       status === s
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-teal-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     )}
                   >
@@ -320,7 +321,7 @@ export const ItemCreateModal = ({
                     className={cn(
                       'px-3 py-1.5 rounded-md text-sm font-medium transition-colors border',
                       tags.includes(tag)
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-teal-600 text-white border-teal-600'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     )}
                   >
@@ -342,7 +343,7 @@ export const ItemCreateModal = ({
                 type="url"
                 value={mediaUrl}
                 onChange={e => setMediaUrl(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 placeholder="https://example.com/image.jpg"
               />
             </div>
@@ -365,7 +366,7 @@ export const ItemCreateModal = ({
               <button
                 type="submit"
                 disabled={isLoading || !title.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? '作成中...' : '作成'}
               </button>

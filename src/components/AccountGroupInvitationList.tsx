@@ -134,7 +134,7 @@ export const AccountGroupInvitationList = ({
                 onClick={() => handleRespond(invitation.id, 'accept')}
                 disabled={processingId === invitation.id}
                 className={cn(
-                  'px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 text-sm'
+                  'px-3 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 text-sm'
                 )}
               >
                 <Check className="w-4 h-4" />

@@ -131,7 +131,7 @@ export const GroupHome = () => {
       <div className="flex gap-2">
         <button
           onClick={e => handleEditClick(e, group)}
-          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
           aria-label="グループを編集"
         >
           <Edit2 className="w-4 h-4" />
@@ -165,7 +165,7 @@ export const GroupHome = () => {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+            className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
             aria-label="新しいグループを作成"
           >
             <Plus className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
@@ -189,7 +189,7 @@ export const GroupHome = () => {
               <button
                 type="button"
                 onClick={fetchGroups}
-                className="text-blue-600 hover:text-blue-700 text-sm md:text-base"
+                className="text-teal-600 hover:text-teal-700 text-sm md:text-base"
               >
                 再読み込み
               </button>
@@ -205,7 +205,7 @@ export const GroupHome = () => {
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="text-blue-600 hover:text-blue-700 text-sm md:text-base font-medium"
+                  className="text-teal-600 hover:text-teal-700 text-sm md:text-base font-medium"
                 >
                   グループを作成
                 </button>
