@@ -10,7 +10,6 @@ import { GroupCreateModal } from './GroupCreateModal'
 import { GroupEditModal } from './GroupEditModal'
 import { DeleteConfirmDialog } from './shared/DeleteConfirmDialog'
 import { Header } from './shared/Header'
-import { HeroSection } from './shared/HeroSection'
 import { SearchBar } from './shared/SearchBar'
 import { SelectionGrid } from './shared/SelectionGrid'
 
@@ -150,71 +149,84 @@ export const GroupHome = () => {
   return (
     <div className="h-screen w-full bg-white flex flex-col overflow-hidden">
       <Header />
-      <main className="flex-1 overflow-y-auto container mx-auto px-4 md:px-6 py-4 md:py-6 max-w-7xl">
-        <HeroSection
-          title="グループ一覧"
-          description={
-            isLoading
-              ? '読み込み中...'
-              : groups.length > 0
-                ? `${groups.length}個のグループ`
-                : 'グループがありません'
-          }
-        />
-        <div className="flex gap-2.5 mb-4 md:mb-5">
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-            aria-label="新しいグループを作成"
-          >
-            <Plus className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
-            <span className="text-sm md:text-base font-medium">新規作成</span>
-          </button>
-        </div>
-        <SearchBar
-          onSearchChange={setSearchQuery}
-          placeholder="グループ名で検索"
-        />
-        <section aria-label="グループ一覧" className="pb-4 md:pb-6">
-          {isLoading ? (
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-sm md:text-base">
-                読み込み中...
-              </p>
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto px-4 md:px-6 py-6 md:py-8 max-w-[1120px]">
+          {/* タイトルとCTAを横並びに */}
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl md:text-[32px] font-bold text-gray-900">
+              グループ一覧
+            </h1>
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex items-center gap-2 px-5 md:px-6 py-3 bg-teal-600 text-white rounded-xl hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors shadow-[0_2px_4px_rgba(0,0,0,0.1)] font-medium text-base"
+              aria-label="新しいグループを作成"
+            >
+              <Plus className="w-5 h-5" aria-hidden="true" />
+              <span>新規作成</span>
+            </button>
+          </div>
+          {/* 検索バー */}
+          <div className="mb-6">
+            <SearchBar
+              onSearchChange={setSearchQuery}
+              placeholder="グループ名で検索"
+            />
+          </div>
+          {/* グループ数表示（読み込み中でない場合のみ） */}
+          {!isLoading && groups.length > 0 && (
+            <div className="mb-4 text-sm text-gray-600">
+              <span className="font-semibold text-gray-900">
+                {groups.length}
+              </span>
+              <span className="text-gray-500"> 個のグループ</span>
             </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-red-600 mb-2 text-sm md:text-base">{error}</p>
-              <button
-                type="button"
-                onClick={fetchGroups}
-                className="text-teal-600 hover:text-teal-700 text-sm md:text-base"
-              >
-                再読み込み
-              </button>
-            </div>
-          ) : groupItems.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-sm md:text-base mb-4">
-                {searchQuery
-                  ? '検索条件に一致するグループが見つかりませんでした'
-                  : 'グループがありません。新しいグループを作成してください。'}
-              </p>
-              {!searchQuery && (
+          )}
+          <section aria-label="グループ一覧" className="pb-6">
+            {isLoading ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600 text-sm md:text-base">
+                  読み込み中...
+                </p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-600 mb-2 text-sm md:text-base">
+                  {error}
+                </p>
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="text-teal-600 hover:text-teal-700 text-sm md:text-base font-medium"
+                  onClick={fetchGroups}
+                  className="text-teal-600 hover:text-teal-700 text-sm md:text-base"
                 >
-                  グループを作成
+                  再読み込み
                 </button>
-              )}
-            </div>
-          ) : (
-            <SelectionGrid items={groupItems} onItemClick={handleGroupClick} />
-          )}
-        </section>
+              </div>
+            ) : groupItems.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600 text-sm md:text-base mb-4">
+                  {searchQuery
+                    ? '検索条件に一致するグループが見つかりませんでした'
+                    : 'グループがありません。新しいグループを作成してください。'}
+                </p>
+                {!searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="text-teal-600 hover:text-teal-700 text-sm md:text-base font-medium"
+                  >
+                    グループを作成
+                  </button>
+                )}
+              </div>
+            ) : (
+              <SelectionGrid
+                items={groupItems}
+                onItemClick={handleGroupClick}
+              />
+            )}
+          </section>
+        </div>
       </main>
       <GroupCreateModal
         open={isCreateModalOpen}

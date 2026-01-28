@@ -1,3 +1,5 @@
+import { ChevronRight } from 'lucide-react'
+
 import { getRegionColor } from '@/utils/regionColors'
 
 type SelectionCardProps = {
@@ -34,7 +36,7 @@ export const SelectionCard = ({
     <button
       type="button"
       onClick={() => onClick(id)}
-      className={`group relative w-full h-full ${colors.bg} ${colors.border} rounded-xl border p-4 md:p-5 lg:p-6 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:ring-offset-2 active:scale-[0.98] hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.12)] ${
+      className={`group relative w-full h-full ${colors.bg} ${colors.border} rounded-xl border p-5 md:p-6 text-left transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:ring-offset-2 active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:border-teal-300/50 ${
         colors.bgHover === 'bg-blue-50'
           ? 'hover:bg-blue-50'
           : colors.bgHover === 'bg-green-50'
@@ -57,65 +59,40 @@ export const SelectionCard = ({
       } ${
         isHighlighted
           ? 'shadow-[0_4px_12px_rgba(0,0,0,0.08)]'
-          : 'shadow-[0_2px_4px_rgba(0,0,0,0.06)]'
+          : 'shadow-[0_2px_6px_rgba(0,0,0,0.08)]'
       }`}
       aria-label={`${title}を選択${itemCount !== undefined ? `（${itemCount}件のアイテム）` : ''}`}
     >
       <div className="flex flex-col h-full">
         {/* ヘッダー部分 */}
-        <div className="flex items-start justify-between gap-2 md:gap-3 mb-3 md:mb-4">
-          <div className="flex-1">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex-1 min-w-0">
             <h3
-              className={`text-lg md:text-xl lg:text-2xl font-semibold ${colors.text} transition-colors flex-1 leading-tight ${
-                colors.accent === 'text-blue-600'
-                  ? 'group-hover:text-blue-600'
-                  : colors.accent === 'text-green-600'
-                    ? 'group-hover:text-green-600'
-                    : colors.accent === 'text-red-600'
-                      ? 'group-hover:text-red-600'
-                      : colors.accent === 'text-orange-600'
-                        ? 'group-hover:text-orange-600'
-                        : colors.accent === 'text-purple-600'
-                          ? 'group-hover:text-purple-600'
-                          : colors.accent === 'text-lime-600'
-                            ? 'group-hover:text-lime-600'
-                            : colors.accent === 'text-cyan-600'
-                              ? 'group-hover:text-cyan-600'
-                              : colors.accent === 'text-rose-600'
-                                ? 'group-hover:text-rose-600'
-                                : colors.accent === 'text-sky-600'
-                                  ? 'group-hover:text-sky-600'
-                                  : 'group-hover:text-gray-600'
-              }`}
+              className={`text-xl md:text-[20px] font-bold ${colors.text} transition-colors leading-tight group-hover:text-teal-700`}
             >
               {title}
             </h3>
             {subtitle && (
-              <p className={`text-xs md:text-sm ${colors.text}/70 mt-1`}>
+              <p
+                className={`text-xs md:text-sm text-gray-500 mt-1.5 line-clamp-2`}
+              >
                 {subtitle}
               </p>
             )}
           </div>
-          {subtitle && !itemCount && (
-            <span
-              className={`text-xs px-2 py-0.5 md:px-2.5 md:py-1 rounded-full font-medium flex-shrink-0 ${colors.bgHover} ${colors.accent}`}
-            >
-              {subtitle}
-            </span>
-          )}
+          {/* 矢印アイコン */}
+          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-teal-600 flex-shrink-0 transition-colors mt-0.5" />
         </div>
 
         {/* データ件数表示 */}
         {itemCount !== undefined && (
-          <div className="mt-auto">
-            <div className="flex items-baseline gap-1.5 md:gap-2">
-              <span
-                className={`text-xl md:text-2xl lg:text-3xl font-semibold ${colors.accent}`}
-              >
+          <div className="mt-auto pt-2">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl md:text-3xl font-bold text-teal-600">
                 {itemCount}
               </span>
-              <span className={`text-xs md:text-sm ${colors.text}/70`}>
-                件のアイテム
+              <span className="text-xs md:text-sm text-gray-500 font-normal">
+                件
               </span>
             </div>
           </div>

@@ -21,7 +21,7 @@ export const SearchBar = ({
   }
 
   return (
-    <div className="flex gap-2.5 mb-4 md:mb-5">
+    <div className="flex gap-2.5">
       <div className="flex-1 relative">
         <label htmlFor="search-input" className="sr-only">
           検索
