@@ -1,4 +1,4 @@
-import { ChevronDown, LogOut, Plus, Users } from 'lucide-react'
+import { ChevronDown, LogOut, Plus, Settings, Users } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 
 import { customInstance } from '@/api/client'
@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import type { AccountGroup } from '@/data/account-groups'
 
 import { AccountGroupCreateModal } from '../AccountGroupCreateModal'
+import { AccountGroupEditModal } from '../AccountGroupEditModal'
 
 import { LeaveAccountGroupDialog } from './LeaveAccountGroupDialog'
 
@@ -21,6 +22,8 @@ export const AccountGroupSelector = () => {
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingGroup, setEditingGroup] = useState<AccountGroup | null>(null)
   const [leavingGroupId, setLeavingGroupId] = useState<string | null>(null)
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
   const [leavingGroup, setLeavingGroup] = useState<AccountGroup | null>(null)
@@ -129,6 +132,17 @@ export const AccountGroupSelector = () => {
     return true
   }
 
+  const handleEditClick = (e: React.MouseEvent, accountGroup: AccountGroup) => {
+    e.stopPropagation()
+    setEditingGroup(accountGroup)
+    setIsEditModalOpen(true)
+    setIsOpen(false)
+  }
+
+  const handleEditSuccess = () => {
+    setEditingGroup(null)
+  }
+
   if (isLoading || accountGroups.length === 0) {
     return (
       <div className="px-3 py-2 text-gray-600 border border-gray-200 rounded-lg bg-gray-50">
@@ -220,6 +234,15 @@ export const AccountGroupSelector = () => {
                     </div>
                   </button>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={e => handleEditClick(e, accountGroup)}
+                      type="button"
+                      className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                      aria-label={`${accountGroup.name}の設定`}
+                      title={`${accountGroup.name}の設定`}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
                     {currentAccountGroupId === accountGroup.id && (
                       <div className="text-teal-600">✓</div>
                     )}
@@ -254,6 +277,14 @@ export const AccountGroupSelector = () => {
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         onSuccess={handleCreateSuccess}
+      />
+
+      {/* アカウントグループ編集モーダル */}
+      <AccountGroupEditModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        accountGroup={editingGroup}
+        onSuccess={handleEditSuccess}
       />
 
       {/* 退会確認ダイアログ */}
