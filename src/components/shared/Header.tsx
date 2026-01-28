@@ -1,4 +1,5 @@
-import { LogOut } from 'lucide-react'
+import { LogOut, ChevronDown } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import ikottoStringIcon from '@/assets/ikotto_stringIcon.png'
@@ -13,11 +14,33 @@ export const Header = () => {
   const { isAuthenticated, logout, user } = useAuth()
   const isLoginPage = location.pathname === '/login'
   const isSignupPage = location.pathname === '/signup'
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   // デバッグ用（開発環境でのみ）
   if (import.meta.env.VITE_DEV_MODE === 'true') {
     console.log('Header - isAuthenticated:', isAuthenticated, 'user:', user)
   }
+
+  // クリックアウトサイドでメニューを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isUserMenuOpen])
 
   const handleLogout = async () => {
     try {
@@ -26,6 +49,14 @@ export const Header = () => {
     } catch (error) {
       console.error('Logout error:', error)
     }
+  }
+
+  // ユーザーのイニシャルを取得（アバター表示用）
+  const getUserInitial = () => {
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase()
+    }
+    return 'U'
   }
 
   return (
@@ -47,26 +78,70 @@ export const Header = () => {
           />
         </Link>
 
-        {/* アカウント名とログアウトボタン（右上） */}
+        {/* 通知とユーザーメニュー（右上） */}
         <div className="flex items-center gap-2 md:gap-3">
           {!isLoginPage && !isSignupPage && user && (
             <>
               <NotificationButton />
               <AccountGroupSelector />
-              <div className="text-sm md:text-base font-medium text-gray-700 truncate max-w-[160px] md:max-w-[200px] hidden sm:block">
-                {user.email || `ユーザーID: ${user.userId}`}
+              {/* ユーザーメニュー */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  type="button"
+                  className="flex items-center gap-2 px-3 md:px-3 py-1.5 md:py-2 text-gray-700 hover:text-teal-700 hover:bg-teal-50 border border-gray-200 hover:border-teal-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                  aria-label="ユーザーメニュー"
+                  aria-expanded={isUserMenuOpen}
+                >
+                  {/* アバター */}
+                  <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold text-sm">
+                    {getUserInitial()}
+                  </div>
+                  <span className="hidden sm:inline text-sm md:text-base font-medium truncate max-w-[160px] md:max-w-[200px]">
+                    {user.email || `ユーザーID: ${user.userId}`}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-gray-500 transition-transform ${
+                      isUserMenuOpen ? 'rotate-180' : ''
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {/* ドロップダウンメニュー */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="py-1">
+                      {/* ユーザー情報 */}
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center font-semibold">
+                            {getUserInitial()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {user.email || `ユーザーID: ${user.userId}`}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              アカウント
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      {/* ログアウト */}
+                      <button
+                        onClick={handleLogout}
+                        type="button"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                        aria-label="ログアウト"
+                      >
+                        <LogOut className="w-4 h-4" aria-hidden="true" />
+                        <span className="font-medium">ログアウト</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <button
-                onClick={handleLogout}
-                type="button"
-                className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 text-gray-700 hover:text-teal-700 hover:bg-teal-50 border border-gray-200 hover:border-teal-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                aria-label="ログアウト"
-              >
-                <LogOut className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
-                <span className="hidden sm:inline text-sm md:text-base font-medium">
-                  ログアウト
-                </span>
-              </button>
             </>
           )}
         </div>
