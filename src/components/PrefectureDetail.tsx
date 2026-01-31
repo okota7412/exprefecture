@@ -9,6 +9,7 @@ import { prefectures } from '@/data/prefectures'
 import { getRegionById } from '@/data/regions'
 
 import { ItemCreateModal } from './ItemCreateModal'
+import { ItemDetailModal } from './ItemDetailModal'
 import { BackButton } from './shared/BackButton'
 import { DeleteConfirmDialog } from './shared/DeleteConfirmDialog'
 import { Header } from './shared/Header'
@@ -29,6 +30,8 @@ export const PrefectureDetail = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null)
 
   const prefectureIdNum = prefectureId ? parseInt(prefectureId, 10) : null
   const prefecture =
@@ -176,8 +179,11 @@ export const PrefectureDetail = () => {
   const itemCount = items.length
 
   const handleItemClick = (itemId: string) => {
-    // TODO: アイテム詳細画面への遷移（将来実装）
-    console.log('Item clicked:', itemId)
+    const item = items.find(i => i.id === itemId)
+    if (item) {
+      setSelectedItem(item)
+      setDetailModalOpen(true)
+    }
   }
 
   const handleCreateSuccess = async () => {
@@ -335,6 +341,11 @@ export const PrefectureDetail = () => {
           )}
         </section>
       </main>
+      <ItemDetailModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        item={selectedItem}
+      />
       {prefectureIdNum !== null && (
         <ItemCreateModal
           open={isCreateModalOpen}
