@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 import { customInstance } from '@/api/client'
 import { useAccountGroup } from '@/contexts/AccountGroupContext'
@@ -8,6 +8,11 @@ import type { Group } from '@/data/groups'
 import type { ItemStatus, ItemTag } from '@/data/items'
 import { getStatusLabel, getTagLabel } from '@/data/items'
 import { cn } from '@/lib/utils'
+import {
+  searchAddressCandidates,
+  DEBOUNCE_MS,
+  type AddressCandidate,
+} from '@/utils/addressSearch'
 
 type ItemCreateModalProps = {
   open: boolean
@@ -39,9 +44,17 @@ export const ItemCreateModal = ({
   open,
 }: ItemCreateModalProps) => {
   const { currentAccountGroupId } = useAccountGroup()
-  const [title, setTitle] = useState('')
+  const [placeQuery, setPlaceQuery] = useState('') // 行きたいところ（検索兼タイトル）
   const [description, setDescription] = useState('')
-  const [cityName, setCityName] = useState('')
+  const [addressCandidates, setAddressCandidates] = useState<
+    AddressCandidate[]
+  >([])
+  const [selectedAddress, setSelectedAddress] =
+    useState<AddressCandidate | null>(null)
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false)
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false)
+  const addressDropdownRef = useRef<HTMLDivElement>(null)
+
   const [status, setStatus] = useState<ItemStatus>('not_visited')
   const [tags, setTags] = useState<ItemTag[]>([])
   const [mediaUrl, setMediaUrl] = useState('')
@@ -88,6 +101,51 @@ export const ItemCreateModal = ({
     }
   }, [open, defaultGroupIds])
 
+  // 行きたいところ入力のデバウンス検索
+  useEffect(() => {
+    if (!placeQuery.trim()) {
+      setAddressCandidates([])
+      setShowAddressDropdown(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setIsLoadingSearch(true)
+      setShowAddressDropdown(true)
+      try {
+        const candidates = await searchAddressCandidates(placeQuery)
+        setAddressCandidates(candidates)
+      } catch {
+        setAddressCandidates([])
+      } finally {
+        setIsLoadingSearch(false)
+      }
+    }, DEBOUNCE_MS)
+
+    return () => clearTimeout(timer)
+  }, [placeQuery])
+
+  // 外側クリックで住所ドロップダウンを閉じる
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        addressDropdownRef.current &&
+        !addressDropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowAddressDropdown(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
+  const handleSelectAddress = useCallback((candidate: AddressCandidate) => {
+    setSelectedAddress(candidate)
+    setShowAddressDropdown(false)
+  }, [])
+
   const handleTagToggle = (tag: ItemTag) => {
     setTags(prev => {
       if (prev.includes(tag)) {
@@ -128,9 +186,10 @@ export const ItemCreateModal = ({
 
       // アイテムを作成（CSRFトークンはインターセプターで自動設定される）
       await customInstance.post('/api/items', {
-        title,
+        title: placeQuery.trim(),
         description: description || undefined,
-        cityName: cityName || undefined,
+        prefectureId: selectedAddress?.prefectureId,
+        cityName: selectedAddress?.cityName,
         status,
         tags,
         mediaUrl: mediaUrl || undefined,
@@ -139,9 +198,10 @@ export const ItemCreateModal = ({
       })
 
       // 成功時はフォームをリセットしてモーダルを閉じる
-      setTitle('')
+      setPlaceQuery('')
       setDescription('')
-      setCityName('')
+      setSelectedAddress(null)
+      setAddressCandidates([])
       setStatus('not_visited')
       setTags([])
       setMediaUrl('')
@@ -171,9 +231,10 @@ export const ItemCreateModal = ({
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen && !isLoading) {
       // モーダルを閉じる際にフォームをリセット
-      setTitle('')
+      setPlaceQuery('')
       setDescription('')
-      setCityName('')
+      setSelectedAddress(null)
+      setAddressCandidates([])
       setStatus('not_visited')
       setTags([])
       setMediaUrl('')
@@ -193,23 +254,86 @@ export const ItemCreateModal = ({
           </Dialog.Title>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="item-title"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                タイトル <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="item-title"
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                required
-                maxLength={200}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                placeholder="例: 東京タワー"
-              />
+            <div ref={addressDropdownRef} className="space-y-4">
+              <div className="relative">
+                <label
+                  htmlFor="item-place"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  行きたいところ <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="item-place"
+                  type="text"
+                  value={placeQuery}
+                  onChange={e => {
+                    setPlaceQuery(e.target.value)
+                    setSelectedAddress(null)
+                    setAddressCandidates([])
+                  }}
+                  required
+                  maxLength={200}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="例: 東京タワー、金閣寺"
+                />
+                {isLoadingSearch && (
+                  <div className="absolute right-3 top-9 text-xs text-gray-500">
+                    検索中...
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  住所
+                </label>
+                {selectedAddress ? (
+                  <div className="flex items-start gap-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                    <p className="text-sm text-gray-700 flex-1 min-w-0">
+                      {selectedAddress.displayName}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAddress(null)}
+                      className="text-xs text-teal-600 hover:text-teal-700 shrink-0"
+                    >
+                      変更
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    {placeQuery.trim() ? (
+                      showAddressDropdown && (
+                        <ul className="border border-gray-300 rounded-md shadow-sm max-h-48 overflow-y-auto bg-white">
+                          {addressCandidates.length === 0 &&
+                          !isLoadingSearch ? (
+                            <li className="px-3 py-3 text-sm text-gray-500">
+                              候補が見つかりませんでした。別のキーワードで検索してみてください。
+                            </li>
+                          ) : (
+                            addressCandidates.map(c => (
+                              <li key={`${c.lat}-${c.lon}-${c.displayName}`}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectAddress(c)}
+                                  className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-teal-50 focus:bg-teal-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                                >
+                                  {c.displayName}
+                                </button>
+                              </li>
+                            ))
+                          )}
+                        </ul>
+                      )
+                    ) : (
+                      <p className="text-sm text-gray-500 py-2">
+                        上で行きたいところを入力すると、住所の候補が表示されます
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
@@ -227,24 +351,6 @@ export const ItemCreateModal = ({
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
                 placeholder="アイテムの説明を入力してください"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="item-city"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                市区町村
-              </label>
-              <input
-                id="item-city"
-                type="text"
-                value={cityName}
-                onChange={e => setCityName(e.target.value)}
-                maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                placeholder="例: 港区"
               />
             </div>
 
@@ -365,7 +471,7 @@ export const ItemCreateModal = ({
               </button>
               <button
                 type="submit"
-                disabled={isLoading || !title.trim()}
+                disabled={isLoading || !placeQuery.trim()}
                 className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? '作成中...' : '作成'}
