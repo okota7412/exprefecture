@@ -8,6 +8,7 @@ import type { Group } from '@/data/groups'
 import type { Item, ItemStatus, ItemTag } from '@/data/items'
 
 import { ItemCreateModal } from './ItemCreateModal'
+import { ItemDetailModal } from './ItemDetailModal'
 import { BackButton } from './shared/BackButton'
 import { DeleteConfirmDialog } from './shared/DeleteConfirmDialog'
 import { Header } from './shared/Header'
@@ -29,6 +30,8 @@ export const GroupDetail = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null)
 
   const fetchGroup = useCallback(async () => {
     if (!groupId || !currentAccountGroupId) return
@@ -170,8 +173,11 @@ export const GroupDetail = () => {
   const itemCount = items.length
 
   const handleItemClick = (itemId: string) => {
-    // TODO: アイテム詳細画面への遷移（将来実装）
-    console.log('Item clicked:', itemId)
+    const item = items.find(i => i.id === itemId)
+    if (item) {
+      setSelectedItem(item)
+      setDetailModalOpen(true)
+    }
   }
 
   const handleCreateSuccess = async () => {
@@ -329,6 +335,11 @@ export const GroupDetail = () => {
           )}
         </section>
       </main>
+      <ItemDetailModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        item={selectedItem}
+      />
       {groupId && (
         <ItemCreateModal
           open={isCreateModalOpen}
