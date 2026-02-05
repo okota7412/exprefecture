@@ -2,6 +2,23 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## 環境変数（フロントエンド）
+
+住所・施設検索に Google Maps Platform を使用します。プロジェクトルートの `.env` に以下を追加してください。
+
+```env
+VITE_GOOGLE_MAPS_API_KEY=あなたのAPIキー
+```
+
+[Google Cloud Console](https://console.cloud.google.com/) で次の API を有効化し、API キーを作成してください。
+
+- **Places API (New)** … 飲食店・公園・施設名などで検索（メイン）  
+  [ライブラリで有効化](https://console.cloud.google.com/apis/library/places.googleapis.com)
+- **Geocoding API** … 住所・地名の検索（補助）  
+  [ライブラリで有効化](https://console.cloud.google.com/apis/library/geocoding-backend.googleapis.com)
+
+**API キーの制限**（「アプリケーションの制限」→ HTTP リファラーに `localhost` や本番ドメインを追加）を設定することを推奨します。フロントエンドからキーを呼び出すため、制限なしだと第三者に悪用される可能性があります。
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
